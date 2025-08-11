@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+          http://www.liquibase.org/xml/ns/dbchangelog
+          https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="2025-08-10-001-create-housing" author="sanderolin">
+        <createTable tableName="housing">
+
+            <column name="id" type="bigint" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_housing"/>
+            </column>
+
+            <column name="address" type="text">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="name" type="text">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="unit_number" type="text">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="housing_type" type="text">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="city" type="text">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="district" type="text">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="area_sqm" type="numeric(6,2)">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="price" type="integer">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="occupancy_status" type="text">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="available_from" type="date">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <rollback>
+            <dropTable tableName="housing"/>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
