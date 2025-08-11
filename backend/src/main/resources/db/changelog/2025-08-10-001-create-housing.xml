@@ -41,15 +41,15 @@
                 <constraints nullable="false"/>
             </column>
 
-            <column name="price" type="integer">
+            <column name="price_per_month" type="integer">
                 <constraints nullable="false"/>
             </column>
 
-            <column name="occupancy_status" type="text">
+            <column name="availability_status" type="text">
                 <constraints nullable="false"/>
             </column>
 
-            <column name="available_from" type="date">
+            <column name="available_from_date" type="date">
                 <constraints nullable="false"/>
             </column>
         </createTable>
