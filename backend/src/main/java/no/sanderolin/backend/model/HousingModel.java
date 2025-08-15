@@ -12,8 +12,8 @@ import java.time.LocalDate;
 public class HousingModel {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "rental_object_id", nullable = false, unique = true)
+    private String rentalObjectId;
 
     private String address;
 
@@ -29,14 +29,14 @@ public class HousingModel {
 
     private String district;
 
-    @Column(name = "area_sqm")
+    @Column(name = "area_sqm", precision = 6, scale = 2)
     private BigDecimal areaSqm;
 
     @Column(name = "price_per_month")
     private int pricePerMonth;
 
-    @Column(name = "available_status")
-    private String availableStatus;
+    @Column(name = "is_available")
+    private boolean isAvailable;
 
     @Column(name = "available_from_date")
     private LocalDate availableFromDate;
