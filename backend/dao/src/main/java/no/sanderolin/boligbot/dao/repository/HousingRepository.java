@@ -1,6 +1,6 @@
-package no.sanderolin.backend.repository;
+package no.sanderolin.boligbot.dao.repository;
 
-import no.sanderolin.backend.model.HousingModel;
+import no.sanderolin.boligbot.dao.model.HousingModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
