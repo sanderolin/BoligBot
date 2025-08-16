@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 @Component
@@ -23,7 +22,7 @@ public class GraphQLHousingMapper {
      * @return A list of HousingModel objects populated with data from the JSON response.
      * @throws Exception If there is an error parsing the JSON response.
      */
-    public Iterator<HousingModel> map(String jsonResponse) throws Exception {
+    public List<HousingModel> map(String jsonResponse) throws Exception {
         JsonNode root = objectMapper.readTree(jsonResponse);
         JsonNode items = root.path("data").path("sanity_allEnhet");
 
@@ -41,6 +40,6 @@ public class GraphQLHousingMapper {
             model.setPricePerMonth(item.path("price").asInt());
             result.add(model);
         }
-        return result.iterator();
+        return result;
     }
 }

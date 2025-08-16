@@ -9,10 +9,6 @@
     <changeSet id="2025-08-10-001-create-housing" author="sanderolin">
         <createTable tableName="housing">
 
-            <column name="id" type="bigint" autoIncrement="true">
-                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_housing"/>
-            </column>
-
             <column name="rental_object_id" type="text">
                 <constraints primaryKey="true" nullable="false" primaryKeyName="pk_housing"/>
             </column>
