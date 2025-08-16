@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Data
 @Entity
 @Table(name = "housing")
-public class HousingModel {
+public class HousingModel extends ImportableEntity{
 
     @Id
     @Column(name = "rental_object_id", nullable = false, unique = true)

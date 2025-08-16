@@ -30,7 +30,7 @@ public class SitScraper {
                 .build();
     }
 
-    public List<HousingModel> scrapeHousingItems(String query) throws Exception {
+    public List<HousingModel> scrapeHousingEntities(String query) throws Exception {
         String response = restClient
                 .post()
                 .body(query)
