@@ -22,9 +22,6 @@ public class HousingModel {
 
     private String name;
 
-    @Column(name = "unit_number")
-    private String unitNumber;
-
     @Column(name = "housing_type")
     private String housingType;
 
