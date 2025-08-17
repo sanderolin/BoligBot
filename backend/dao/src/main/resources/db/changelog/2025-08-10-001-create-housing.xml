@@ -41,7 +41,7 @@
                 <constraints nullable="false"/>
             </column>
 
-            <column name="is_available" type="boolean">
+            <column name="is_available" type="boolean" defaultValue="false">
                 <constraints nullable="true"/>
             </column>
 

@@ -5,17 +5,17 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.sanderolin.boligbot.dao.model.HousingModel;
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -29,24 +29,39 @@ public class GetAllHousingImportTask {
 
     /**
      * Scheduled task to import all housing items from the SIT GraphQL API.
-     * This task runs every day at 16:00.
-     * It uses a GraphQL query to fetch all housing items, excluding parking spaces.
-     * The fetched items are then saved to the database.
+     * Cron expression is configurable via housing.import.cron property.
+     * Default: every day at 16:00.
      */
     @Scheduled(cron = "0 0 16 * * *")
     @Transactional
     @PostConstruct
     public void importAllHousing() {
         log.info("Starting housing import process");
-
         LocalDateTime taskStartTime = LocalDateTime.now();
-        List<HousingModel> importedHousingEntities = fetchHousingEntitiesFromGraphQL();
-        if (importedHousingEntities.isEmpty()) {
-            log.info("No housing items found to import");
-            return;
-        }
-        log.info("Fetched {} housing items from API", importedHousingEntities.size());
+        try {
+            List<HousingModel> importedHousingEntities = fetchHousingEntitiesFromGraphQL();
 
+            if (importedHousingEntities.isEmpty()) {
+                log.info("No housing items found to import");
+                return;
+            }
+
+            log.info("Fetched {} housing items from API", importedHousingEntities.size());
+            processHousingEntities(importedHousingEntities, taskStartTime);
+
+        } catch (HousingImportException e) {
+            log.error("Failed to import housing data: {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error during housing import", e);
+            throw new HousingImportException("Unexpected error during housing import", e);
+        } finally {
+            long durationMs = Duration.between(taskStartTime, LocalDateTime.now()).toMillis();
+            log.info("Housing import completed in {} ms", durationMs);
+        }
+    }
+
+    public void processHousingEntities(List<HousingModel> importedHousingEntities, LocalDateTime taskStartTime) {
         List<String> idsOfImportedHousingEntities = importedHousingEntities.stream()
                 .map(HousingModel::getRentalObjectId)
                 .toList();
@@ -68,7 +83,7 @@ public class GetAllHousingImportTask {
                 toCreate.add(incoming);
             } else {
                 existing.setLastImportedAt(taskStartTime);
-                if (hasHousingEntityChanged(existing, incoming)) {
+                if (!existing.dataEquals(incoming)) {
                     updateFields(existing, incoming);
                     existing.setLastModifiedAt(taskStartTime);
                     toUpdate.add(existing);
@@ -81,23 +96,6 @@ public class GetAllHousingImportTask {
         if (!toUpdate.isEmpty()) housingRepository.saveAll(toUpdate);
         log.info("Saved {} new and {} updated housing items", toCreate.size(), toUpdate.size());
         log.info("Successfully saved {} total housing items", importedHousingEntities.size());
-        long durationMs = Duration.between(taskStartTime, LocalDateTime.now()).toMillis();
-        log.info("Housing import completed in {} ms", durationMs);
-    }
-
-    private boolean hasHousingEntityChanged(HousingModel existing, HousingModel incoming) {
-        return !Objects.equals(existing.getName(), incoming.getName())
-               || !Objects.equals(existing.getAddress(), incoming.getAddress())
-               || !Objects.equals(existing.getHousingType(), incoming.getHousingType())
-               || !Objects.equals(existing.getCity(), incoming.getCity())
-               || !Objects.equals(existing.getDistrict(), incoming.getDistrict())
-               || !areaEquals(existing.getAreaSqm(), incoming.getAreaSqm())
-               || existing.getPricePerMonth() != incoming.getPricePerMonth();
-    }
-
-    private boolean areaEquals(BigDecimal a, BigDecimal b) {
-        if (a == null || b == null) return Objects.equals(a, b);
-        return a.compareTo(b) == 0;
     }
 
     private void updateFields(HousingModel existing, HousingModel incoming) {
@@ -110,6 +108,11 @@ public class GetAllHousingImportTask {
         existing.setPricePerMonth(incoming.getPricePerMonth());
     }
 
+
+    @Retryable(
+            retryFor = {HousingImportException.class},
+            backoff = @Backoff(delay = 1000, multiplier = 2)
+    )
     private List<HousingModel> fetchHousingEntitiesFromGraphQL() {
         String getHousingEntitiesQuery = """
             {
@@ -137,7 +140,8 @@ public class GetAllHousingImportTask {
         try {
             return sitScraper.scrapeHousingEntities(getHousingEntitiesQuery);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            log.error("Failed to fetch housing entities from GraphQL API", e);
+            throw new HousingImportException("Failed to fetch housing data from external API", e);
         }
     }
 }
