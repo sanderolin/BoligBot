@@ -3,7 +3,6 @@ package no.sanderolin.boligbot.housingimport.service;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import no.sanderolin.boligbot.dao.model.HousingModel;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -11,31 +10,29 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
-import java.util.List;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class SitScraper {
+public class SitGraphQLClient {
 
     @Value("${sit.graphql.url}")
-    private String sitGraphqlUrl;
+    private String sitGraphQLURL;
 
-    private final GraphQLHousingMapper graphQLHousingMapper;
     private RestClient restClient;
 
     @PostConstruct
     public void initializeRestClient() {
         this.restClient = RestClient.builder()
-                .baseUrl(sitGraphqlUrl)
+                .baseUrl(sitGraphQLURL)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.USER_AGENT, "BoligBot/1.0")
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
-        log.info("Initialized SIT scraper with URL: {}", sitGraphqlUrl);
+        log.info("Initialized SIT API client with URL: {}", sitGraphQLURL);
     }
 
-    public List<HousingModel> scrapeHousingEntities(String query) {
+    public String fetchHousingEntitiesResponse(String query) {
         validateQuery(query);
         try {
             String response = restClient
@@ -46,13 +43,34 @@ public class SitScraper {
 
             validateResponse(response);
 
-            return graphQLHousingMapper.map(response);
+            return response;
         } catch (RestClientException e) {
             log.error("Network error while calling SIT GraphQL API: {}", e.getMessage());
             throw new HousingImportException("Failed to communicate with SIT GraphQL API", e);
         } catch (Exception e) {
-            log.error("Unexpected error during scraping: {}", e.getMessage());
-            throw new HousingImportException("Failed to scrape housing data", e);
+            log.error("Unexpected error during fetching: {}", e.getMessage());
+            throw new HousingImportException("Failed to fetch housing data", e);
+        }
+    }
+
+    public String fetchHousingIds(String query) {
+        validateQuery(query);
+        try {
+            String response = restClient
+                    .post()
+                    .body(query)
+                    .retrieve()
+                    .body(String.class);
+
+            validateResponse(response);
+
+            return response;
+        } catch (RestClientException e) {
+            log.error("Network error while calling SIT GraphQL API: {}", e.getMessage());
+            throw new HousingImportException("Failed to communicate with SIT GraphQL API", e);
+        } catch (Exception e) {
+            log.error("Unexpected error during fetching: {}", e.getMessage());
+            throw new HousingImportException("Failed to fetch housing IDs", e);
         }
     }
 

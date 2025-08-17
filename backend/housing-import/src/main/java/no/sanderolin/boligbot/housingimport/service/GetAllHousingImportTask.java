@@ -24,12 +24,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class GetAllHousingImportTask {
 
-    private final SitScraper sitScraper;
+    private final SitGraphQLClient sitGraphQLClient;
+    private final GraphQLHousingMapper graphQLHousingMapper;
     private final HousingRepository housingRepository;
 
     /**
      * Scheduled task to import all housing items from the SIT GraphQL API.
-     * Cron expression is configurable via housing.import.cron property.
      * Default: every day at 16:00.
      */
     @Scheduled(cron = "0 0 16 * * *")
@@ -61,7 +61,7 @@ public class GetAllHousingImportTask {
         }
     }
 
-    public void processHousingEntities(List<HousingModel> importedHousingEntities, LocalDateTime taskStartTime) {
+    private void processHousingEntities(List<HousingModel> importedHousingEntities, LocalDateTime taskStartTime) {
         List<String> idsOfImportedHousingEntities = importedHousingEntities.stream()
                 .map(HousingModel::getRentalObjectId)
                 .toList();
@@ -138,7 +138,8 @@ public class GetAllHousingImportTask {
             """;
 
         try {
-            return sitScraper.scrapeHousingEntities(getHousingEntitiesQuery);
+            String response = sitGraphQLClient.fetchHousingEntitiesResponse(getHousingEntitiesQuery);
+            return graphQLHousingMapper.mapHousingEntities(response);
         } catch (Exception e) {
             log.error("Failed to fetch housing entities from GraphQL API", e);
             throw new HousingImportException("Failed to fetch housing data from external API", e);

@@ -25,12 +25,12 @@ public class GraphQLHousingMapper {
      * @param jsonResponse The JSON response string from the GraphQL query.
      * @return A list of HousingModel objects populated with data from the JSON response.
      */
-    public List<HousingModel> map(String jsonResponse) {
+    public List<HousingModel> mapHousingEntities(String jsonResponse) {
         validateInput(jsonResponse);
 
         try {
             JsonNode root = objectMapper.readTree(jsonResponse);
-            validateJsonStructure(root);
+            validateHousingEntitiesJsonStructure(root);
 
             JsonNode items = root.path("data").path("sanity_allEnhet");
             List<HousingModel> result = new ArrayList<>();
@@ -60,13 +60,64 @@ public class GraphQLHousingMapper {
         }
     }
 
+    public List<String> mapHousingIds(String jsonResponse) {
+        validateInput(jsonResponse);
+
+        try {
+            JsonNode root = objectMapper.readTree(jsonResponse);
+            validateHousingIdsJsonStructure(root);
+
+            JsonNode items = root.path("data").path("housings").path("housingRentalObjects");
+            List<String> result = new ArrayList<>();
+            int processedCount = 0;
+            int skippedCount = 0;
+
+            for (JsonNode item : items) {
+                try {
+                    String rentalObjectId = getRentalObjectId(item);
+                    if (rentalObjectId == null) {
+                        skippedCount++;
+                        continue;
+                    }
+                    result.add(rentalObjectId);
+                    processedCount++;
+                } catch (Exception e) {
+                    log.warn("Failed to extract rentalObjectId from item: {}", item.toString(), e);
+                    skippedCount++;
+                }
+            }
+            log.info("Extracted {} rentalObjectIds successfully, skipped {} items", processedCount, skippedCount);
+            return result;
+        } catch (JsonProcessingException e) {
+            throw new HousingImportException("Failed to parse JSON response from GraphQL API", e);
+        } catch (Exception e) {
+            throw new HousingImportException("Failed to map GraphQL response to housing IDs", e);
+        }
+    }
+
     private void validateInput(String jsonResponse) {
         if (jsonResponse == null || jsonResponse.trim().isEmpty()) {
             throw new IllegalArgumentException("JSON response cannot be null or empty");
         }
     }
 
-    private void validateJsonStructure(JsonNode root) {
+    private void validateHousingEntitiesJsonStructure(JsonNode root) {
+        validateCommonJsonStructure(root);
+        JsonNode data = root.path("data");
+        if (!data.has("sanity_allEnhet")) {
+            throw new HousingImportException("Invalid GraphQL response: missing 'sanity_allEnhet' field");
+        }
+    }
+
+    private void validateHousingIdsJsonStructure(JsonNode root) {
+        validateCommonJsonStructure(root);
+        JsonNode data = root.path("data");
+        if (!data.has("housings") || !data.path("housings").has("housingRentalObjects")) {
+            throw new HousingImportException("Invalid GraphQL response: missing 'housings.housingRentalObjects' field");
+        }
+    }
+
+    private void validateCommonJsonStructure(JsonNode root) {
         if (root == null) {
             throw new HousingImportException("Invalid JSON: root node is null");
         }
@@ -75,21 +126,16 @@ public class GraphQLHousingMapper {
             throw new HousingImportException("Invalid GraphQL response: missing 'data' field");
         }
 
-        JsonNode data = root.path("data");
-        if (!data.has("sanity_allEnhet")) {
-            throw new HousingImportException("Invalid GraphQL response: missing 'sanity_allEnhet' field");
-        }
-
         if (root.has("errors")) {
             JsonNode errors = root.path("errors");
             throw new HousingImportException("GraphQL response contains errors: " + errors.toString());
         }
     }
 
+
     private HousingModel mapSingleItem(JsonNode item) {
-        String rentalObjectId = getStringValue(item, "rentalObjectId");
-        if (!StringUtils.hasText(rentalObjectId)) {
-            log.warn("Skipping item with missing or empty rentalObjectId: {}", item);
+        String rentalObjectId = getRentalObjectId(item);
+        if (rentalObjectId == null) {
             return null;
         }
 
@@ -105,6 +151,15 @@ public class GraphQLHousingMapper {
         model.setPricePerMonth(getIntValue(item, "price"));
 
         return model;
+    }
+
+    private String getRentalObjectId(JsonNode item) {
+        String rentalObjectId = getStringValue(item, "rentalObjectId");
+        if (!StringUtils.hasText(rentalObjectId)) {
+            log.warn("Skipping item with missing or empty rentalObjectId: {}", item);
+            return null;
+        }
+        return rentalObjectId;
     }
 
     private String getStringValue(JsonNode parent, String fieldName) {
