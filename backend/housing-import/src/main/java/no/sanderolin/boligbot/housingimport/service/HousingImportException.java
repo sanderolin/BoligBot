@@ -13,8 +13,4 @@ public class HousingImportException extends RuntimeException {
     public HousingImportException(String message, Throwable cause) {
         super(message, cause);
     }
-
-    public HousingImportException(Throwable cause) {
-        super(cause);
-    }
 }

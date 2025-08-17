@@ -24,9 +24,8 @@ public class GraphQLHousingMapper {
      * Maps the JSON response from the GraphQL query to a list of HousingModel objects.
      * @param jsonResponse The JSON response string from the GraphQL query.
      * @return A list of HousingModel objects populated with data from the JSON response.
-     * @throws Exception If there is an error parsing the JSON response.
      */
-    public List<HousingModel> map(String jsonResponse) throws Exception {
+    public List<HousingModel> map(String jsonResponse) {
         validateInput(jsonResponse);
 
         try {
