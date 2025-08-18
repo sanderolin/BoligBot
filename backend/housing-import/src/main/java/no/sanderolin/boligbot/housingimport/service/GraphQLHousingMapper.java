@@ -55,6 +55,8 @@ public class GraphQLHousingMapper {
             return result;
         } catch (JsonProcessingException e) {
             throw new HousingImportException("Failed to parse JSON response from GraphQL API", e);
+        } catch (HousingImportException e) {
+            throw e;
         } catch (Exception e) {
             throw new HousingImportException("Failed to map GraphQL response to housing models", e);
         }
@@ -74,8 +76,9 @@ public class GraphQLHousingMapper {
 
             for (JsonNode item : items) {
                 try {
-                    String rentalObjectId = getRentalObjectId(item);
-                    if (rentalObjectId == null) {
+                    String rentalObjectId = getStringValue(item, "rentalObjectId");
+                    if (!StringUtils.hasText(rentalObjectId)) {
+                        log.warn("Missing rentalObjectId in item: {}", item);
                         skippedCount++;
                         continue;
                     }
@@ -90,6 +93,8 @@ public class GraphQLHousingMapper {
             return result;
         } catch (JsonProcessingException e) {
             throw new HousingImportException("Failed to parse JSON response from GraphQL API", e);
+        } catch (HousingImportException e) {
+            throw e;
         } catch (Exception e) {
             throw new HousingImportException("Failed to map GraphQL response to housing IDs", e);
         }
@@ -134,32 +139,76 @@ public class GraphQLHousingMapper {
 
 
     private HousingModel mapSingleItem(JsonNode item) {
-        String rentalObjectId = getRentalObjectId(item);
-        if (rentalObjectId == null) {
+        String rentalObjectId = getStringValue(item, "rentalObjectId");
+        String name = getStringValue(item, "name");
+        String address = getNestedStringValue(item, "building", "address");
+        String housingType = getNestedStringValue(item, "category", "displayName", "en");
+        String city = getNestedStringValue(item, "studentby", "studiested", "name");
+        String district = getNestedStringValue(item, "studentby", "name");
+        BigDecimal areaSqm = getBigDecimalValue(item, "area");
+        int pricePerMonth = getIntValue(item, "price");
+
+        if (!isValidHousingData(rentalObjectId, name, address, housingType, city, district, areaSqm, pricePerMonth)) {
             return null;
         }
 
         HousingModel model = new HousingModel();
         model.setRentalObjectId(rentalObjectId);
-        model.setName(getStringValue(item, "name"));
-        model.setAddress(getNestedStringValue(item, "building", "address"));
-        model.setHousingType(getNestedStringValue(item, "category", "displayName", "en"));
-        model.setCity(getNestedStringValue(item, "studentby", "studiested", "name"));
-        model.setDistrict(getNestedStringValue(item, "studentby", "name"));
-
-        model.setAreaSqm(getBigDecimalValue(item, "area"));
-        model.setPricePerMonth(getIntValue(item, "price"));
-
+        model.setName(name);
+        model.setAddress(address);
+        model.setHousingType(housingType);
+        model.setCity(city);
+        model.setDistrict(district);
+        model.setAreaSqm(areaSqm);
+        model.setPricePerMonth(pricePerMonth);
         return model;
     }
 
-    private String getRentalObjectId(JsonNode item) {
-        String rentalObjectId = getStringValue(item, "rentalObjectId");
+    private boolean isValidHousingData(String rentalObjectId, String name, String address,
+                                       String housingType, String city, String district,
+                                       BigDecimal areaSqm, int pricePerMonth) {
+
         if (!StringUtils.hasText(rentalObjectId)) {
-            log.warn("Skipping item with missing or empty rentalObjectId: {}", item);
-            return null;
+            log.warn("Missing rentalObjectId");
+            return false;
         }
-        return rentalObjectId;
+
+        if (!StringUtils.hasText(name)) {
+            log.warn("Missing name for rentalObjectId: {}", rentalObjectId);
+            return false;
+        }
+
+        if (!StringUtils.hasText(address)) {
+            log.warn("Missing address for rentalObjectId: {}", rentalObjectId);
+            return false;
+        }
+
+        if (!StringUtils.hasText(housingType)) {
+            log.warn("Missing housingType for rentalObjectId: {}", rentalObjectId);
+            return false;
+        }
+
+        if (!StringUtils.hasText(city)) {
+            log.warn("Missing city for rentalObjectId: {}", rentalObjectId);
+            return false;
+        }
+
+        if (!StringUtils.hasText(district)) {
+            log.warn("Missing district for rentalObjectId: {}", rentalObjectId);
+            return false;
+        }
+
+        if (areaSqm == null || areaSqm.compareTo(BigDecimal.ZERO) <= 0) {
+            log.warn("Missing or invalid area for rentalObjectId: {}", rentalObjectId);
+            return false;
+        }
+
+        if (pricePerMonth <= 0) {
+            log.warn("Missing or invalid price for rentalObjectId: {}", rentalObjectId);
+            return false;
+        }
+
+        return true;
     }
 
     private String getStringValue(JsonNode parent, String fieldName) {

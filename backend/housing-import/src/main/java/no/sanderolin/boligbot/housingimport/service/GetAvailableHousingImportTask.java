@@ -78,7 +78,7 @@ public class GetAvailableHousingImportTask {
             }
             """;
         try {
-            String response = sitGraphQLClient.fetchHousingIds(getHousingEntitiesQuery);
+            String response = sitGraphQLClient.executeGraphQLQuery(getHousingEntitiesQuery);
             return graphQLHousingMapper.mapHousingIds(response);
         } catch (Exception e) {
             log.error("Failed to fetch housing ids from GraphQL API", e);

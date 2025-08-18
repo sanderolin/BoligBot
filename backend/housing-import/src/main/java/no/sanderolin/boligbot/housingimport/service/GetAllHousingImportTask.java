@@ -138,7 +138,7 @@ public class GetAllHousingImportTask {
             """;
 
         try {
-            String response = sitGraphQLClient.fetchHousingEntitiesResponse(getHousingEntitiesQuery);
+            String response = sitGraphQLClient.executeGraphQLQuery(getHousingEntitiesQuery);
             return graphQLHousingMapper.mapHousingEntities(response);
         } catch (Exception e) {
             log.error("Failed to fetch housing entities from GraphQL API", e);

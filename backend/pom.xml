@@ -17,6 +17,9 @@
         <lombok.version>1.18.38</lombok.version>
         <liquibase.version>4.33.0</liquibase.version>
         <postgresql.version>42.7.7</postgresql.version>
+        <jakarta.persitence.version>3.2.0</jakarta.persitence.version>
+        <jakarta.validation.version>3.1.1</jakarta.validation.version>
+        <spring.retry.version>2.0.12</spring.retry.version>
     </properties>
     <dependencyManagement>
         <dependencies>

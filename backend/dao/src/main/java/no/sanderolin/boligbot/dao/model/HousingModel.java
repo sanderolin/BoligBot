@@ -21,21 +21,25 @@ public class HousingModel extends ImportableEntity{
     @Column(name = "rental_object_id", nullable = false, unique = true)
     private String rentalObjectId;
 
+    @Column(nullable = false)
     private String address;
 
+    @Column(nullable = false)
     private String name;
 
-    @Column(name = "housing_type")
+    @Column(name = "housing_type", nullable = false)
     private String housingType;
 
+    @Column(nullable = false)
     private String city;
 
+    @Column(nullable = false)
     private String district;
 
-    @Column(name = "area_sqm", precision = 6, scale = 2)
+    @Column(name = "area_sqm", precision = 6, scale = 2, nullable = false)
     private BigDecimal areaSqm;
 
-    @Column(name = "price_per_month")
+    @Column(name = "price_per_month", nullable = false)
     private int pricePerMonth;
 
     @Column(name = "is_available")

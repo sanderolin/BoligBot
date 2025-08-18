@@ -32,7 +32,7 @@ public class SitGraphQLClient {
         log.info("Initialized SIT API client with URL: {}", sitGraphQLURL);
     }
 
-    public String fetchHousingEntitiesResponse(String query) {
+    public String executeGraphQLQuery(String query) {
         validateQuery(query);
         try {
             String response = restClient
@@ -47,30 +47,8 @@ public class SitGraphQLClient {
         } catch (RestClientException e) {
             log.error("Network error while calling SIT GraphQL API: {}", e.getMessage());
             throw new HousingImportException("Failed to communicate with SIT GraphQL API", e);
-        } catch (Exception e) {
-            log.error("Unexpected error during fetching: {}", e.getMessage());
-            throw new HousingImportException("Failed to fetch housing data", e);
-        }
-    }
-
-    public String fetchHousingIds(String query) {
-        validateQuery(query);
-        try {
-            String response = restClient
-                    .post()
-                    .body(query)
-                    .retrieve()
-                    .body(String.class);
-
-            validateResponse(response);
-
-            return response;
-        } catch (RestClientException e) {
-            log.error("Network error while calling SIT GraphQL API: {}", e.getMessage());
-            throw new HousingImportException("Failed to communicate with SIT GraphQL API", e);
-        } catch (Exception e) {
-            log.error("Unexpected error during fetching: {}", e.getMessage());
-            throw new HousingImportException("Failed to fetch housing IDs", e);
+        } catch (HousingImportException e) {
+            throw e;
         }
     }
 
@@ -85,7 +63,7 @@ public class SitGraphQLClient {
             throw new HousingImportException("Received empty response from SIT GraphQL API");
         }
 
-        if (response.contains("\"errors\"")) {
+        if (response.contains("errors")) {
             log.warn("GraphQL response contains errors: {}", response);
             throw new HousingImportException("GraphQL API returned errors: " + response);
         }
