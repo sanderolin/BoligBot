@@ -1,4 +1,4 @@
-package no.sanderolin.boligbot.housingimport.service;
+package no.sanderolin.boligbot.housingimport.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.sanderolin.boligbot.dao.model.HousingModel;
+import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 

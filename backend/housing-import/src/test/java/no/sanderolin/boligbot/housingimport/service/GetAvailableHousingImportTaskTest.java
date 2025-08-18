@@ -1,6 +1,9 @@
 package no.sanderolin.boligbot.housingimport.service;
 
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
+import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
+import no.sanderolin.boligbot.housingimport.util.GraphQLHousingMapper;
+import no.sanderolin.boligbot.housingimport.util.SitGraphQLClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,5 +1,7 @@
-package no.sanderolin.boligbot.housingimport.service;
+package no.sanderolin.boligbot.housingimport.util;
 
+import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
+import no.sanderolin.boligbot.housingimport.util.SitGraphQLClient;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;

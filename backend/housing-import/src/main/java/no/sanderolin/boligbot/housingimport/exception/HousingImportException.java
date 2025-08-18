@@ -1,4 +1,4 @@
-package no.sanderolin.boligbot.housingimport.service;
+package no.sanderolin.boligbot.housingimport.exception;
 
 /**
  * Custom exception for housing import operations.

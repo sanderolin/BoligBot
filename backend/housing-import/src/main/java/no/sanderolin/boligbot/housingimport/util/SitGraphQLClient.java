@@ -1,8 +1,9 @@
-package no.sanderolin.boligbot.housingimport.service;
+package no.sanderolin.boligbot.housingimport.util;
 
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
