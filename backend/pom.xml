@@ -20,6 +20,7 @@
         <jakarta.persitence.version>3.2.0</jakarta.persitence.version>
         <jakarta.validation.version>3.1.1</jakarta.validation.version>
         <spring.retry.version>2.0.12</spring.retry.version>
+        <jjwt.version>0.12.7</jjwt.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -34,5 +35,6 @@
         <module>dao</module>
         <module>housing-import</module>
         <module>app</module>
+        <module>web</module>
     </modules>
 </project>

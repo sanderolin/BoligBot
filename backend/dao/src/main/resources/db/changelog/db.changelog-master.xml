@@ -6,6 +6,7 @@
           http://www.liquibase.org/xml/ns/dbchangelog
           https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <include file="classpath:/db/changelog/2025-08-10-001-create-housing.xml"/>
+    <include file="classpath:db/changelog/2025-08-10-001-create-housings.xml"/>
     <include file="classpath:/db/changelog/2025-08-16-001-add-audit-fields-to-housing.xml"/>
+    <include file="classpath:/db/changelog/2025-08-18-001-create-users.xml"/>
 </databaseChangeLog>

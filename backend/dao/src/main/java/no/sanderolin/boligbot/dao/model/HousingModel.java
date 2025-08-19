@@ -14,7 +14,7 @@ import java.util.Objects;
 @Data
 @EqualsAndHashCode(callSuper = true)
 @Entity
-@Table(name = "housing")
+@Table(name = "housings")
 public class HousingModel extends ImportableEntity{
 
     @Id

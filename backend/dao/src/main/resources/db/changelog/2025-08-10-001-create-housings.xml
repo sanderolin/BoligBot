@@ -7,7 +7,7 @@
           https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <changeSet id="2025-08-10-001-create-housing" author="sanderolin">
-        <createTable tableName="housing">
+        <createTable tableName="housings">
 
             <column name="rental_object_id" type="text">
                 <constraints primaryKey="true" nullable="false" primaryKeyName="pk_housing"/>
@@ -51,7 +51,7 @@
         </createTable>
 
         <rollback>
-            <dropTable tableName="housing"/>
+            <dropTable tableName="housings"/>
         </rollback>
     </changeSet>
 </databaseChangeLog>
