@@ -8,7 +8,6 @@ import no.sanderolin.boligbot.housingimport.util.GraphQLHousingMapper;
 import no.sanderolin.boligbot.housingimport.util.SitGraphQLClient;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,7 +18,7 @@ import java.util.List;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class GetAvailableHousingImportTask {
+public class HousingAvailabilityImportService {
 
     private final SitGraphQLClient sitGraphQLClient;
     private final GraphQLHousingMapper graphQLHousingMapper;
@@ -30,11 +29,17 @@ public class GetAvailableHousingImportTask {
      * Default: every 10 seconds
      */
     @Transactional
-    @Scheduled(cron = "0 * * * * *")
     public void importAvailableHousing() {
         log.info("Starting available housing import process");
         LocalDateTime taskStartTime = LocalDateTime.now();
         try {
+            long totalHousingCount = housingRepository.count();
+            if (totalHousingCount == 0) {
+                log.warn("No housing records found in database. Availability import requires existing housing data. " +
+                        "Please run the housing catalog import first.");
+                return;
+            }
+
             List<String> importedAvailableHousingIds = fetchAvailableHousingIdsFromGraphQL();
             if (importedAvailableHousingIds.isEmpty()) {
                 log.info("No available housing ids found to import");

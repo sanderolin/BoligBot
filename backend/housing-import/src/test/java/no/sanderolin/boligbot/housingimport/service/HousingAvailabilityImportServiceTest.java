@@ -19,12 +19,12 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class GetAvailableHousingImportTaskTest {
+class HousingAvailabilityImportServiceTest {
 
     @Mock private SitGraphQLClient sitGraphQLClient;
     @Mock private GraphQLHousingMapper graphQLHousingMapper;
     @Mock private HousingRepository housingRepository;
-    @InjectMocks private GetAvailableHousingImportTask importTask;
+    @InjectMocks private HousingAvailabilityImportService importTask;
 
     private final String mockGraphQLResponse = "graphql_response";
     private List<String> availableHousingIds;

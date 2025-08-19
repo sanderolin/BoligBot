@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class GetAllHousingImportTaskTest {
+class HousingCatalogImportServiceTest {
 
     @Mock
     private SitGraphQLClient sitGraphQLClient;
@@ -34,13 +34,12 @@ class GetAllHousingImportTaskTest {
     private HousingRepository housingRepository;
 
     @InjectMocks
-    private GetAllHousingImportTask importTask;
+    private HousingCatalogImportService importTask;
 
     private HousingModel existingHousing;
     private HousingModel newHousing;
     private HousingModel updatedHousing;
     private final String mockGraphQLResponse = "response";
-    private final String expectedQuery = "query";
     private final LocalDateTime timestamp = LocalDateTime.now();
 
     @BeforeEach
@@ -59,12 +58,12 @@ class GetAllHousingImportTaskTest {
     }
 
     @Test
-    void importAllHousing_WithNewHousing_ShouldCreateNewRecords() {
+    void runImport_ShouldCreateNewRecords() {
         when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
         when(graphQLHousingMapper.mapHousingEntities(eq(mockGraphQLResponse))).thenReturn(List.of(newHousing));
         when(housingRepository.findAllByRentalObjectIdIn(eq(List.of(newHousing.getRentalObjectId())))).thenReturn(Collections.emptyList());
         when(housingRepository.saveAll(any())).thenReturn(List.of(newHousing));
-        importTask.importAllHousing();
+        importTask.runImport();
 
         verify(sitGraphQLClient).executeGraphQLQuery(anyString());
         verify(graphQLHousingMapper).mapHousingEntities(mockGraphQLResponse);
@@ -90,7 +89,7 @@ class GetAllHousingImportTaskTest {
         when(housingRepository.findAllByRentalObjectIdIn(eq(List.of(unchangedHousing.getRentalObjectId())))).thenReturn(List.of(existingHousing));
         when(housingRepository.saveAll(any())).thenReturn(List.of(existingHousing));
 
-        importTask.importAllHousing();
+        importTask.runImport();
 
         verify(housingRepository).saveAll(argThat(list -> {
             List<HousingModel> models = (List<HousingModel>) list;
@@ -102,13 +101,13 @@ class GetAllHousingImportTaskTest {
     }
 
     @Test
-    void importAllHousing_WithExistingChangedHousing_ShouldUpdateFields() {
+    void runImport_ShouldUpdateFields() {
         when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
         when(graphQLHousingMapper.mapHousingEntities(eq(mockGraphQLResponse))).thenReturn(List.of(updatedHousing));
         when(housingRepository.findAllByRentalObjectIdIn(eq(List.of(updatedHousing.getRentalObjectId())))).thenReturn(List.of(existingHousing));
         when(housingRepository.saveAll(any())).thenReturn(List.of(updatedHousing));
 
-        importTask.importAllHousing();
+        importTask.runImport();
 
         verify(housingRepository).saveAll(argThat(list -> {
             List<HousingModel> models = (List<HousingModel>) list;
@@ -128,11 +127,11 @@ class GetAllHousingImportTaskTest {
     }
 
     @Test
-    void importAllHousing_WithEmptyResponse_ShouldExitEarly() {
+    void runImport_WithEmptyResponse_ShouldExitEarly() {
         when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
         when(graphQLHousingMapper.mapHousingEntities(mockGraphQLResponse)).thenReturn(Collections.emptyList());
 
-        importTask.importAllHousing();
+        importTask.runImport();
 
         verify(sitGraphQLClient).executeGraphQLQuery(anyString());
         verify(graphQLHousingMapper).mapHousingEntities(mockGraphQLResponse);
@@ -144,7 +143,7 @@ class GetAllHousingImportTaskTest {
         when(sitGraphQLClient.executeGraphQLQuery(anyString()))
                 .thenThrow(new HousingImportException("exception"));
 
-        assertThatThrownBy(() -> importTask.importAllHousing())
+        assertThatThrownBy(() -> importTask.runImport())
                 .isInstanceOf(HousingImportException.class)
                 .hasMessage("Failed to fetch housing data from external API");
 
@@ -153,13 +152,13 @@ class GetAllHousingImportTaskTest {
     }
 
     @Test
-    void importAllHousing_WithGraphQLMapperException_ShouldPropagateException() {
+    void runImport_WithGraphQLMapperException_ShouldPropagateException() {
         // Given
         when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
         when(graphQLHousingMapper.mapHousingEntities(mockGraphQLResponse))
                 .thenThrow(new HousingImportException("exception"));
 
-        assertThatThrownBy(() -> importTask.importAllHousing())
+        assertThatThrownBy(() -> importTask.runImport())
                 .isInstanceOf(HousingImportException.class)
                 .hasMessage("Failed to fetch housing data from external API");
 
@@ -167,7 +166,7 @@ class GetAllHousingImportTaskTest {
     }
 
     @Test
-    void importAllHousing_WithDatabaseException_ShouldWrapException() {
+    void runImport_WithDatabaseException_ShouldWrapException() {
         // Given
         when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
         when(graphQLHousingMapper.mapHousingEntities(mockGraphQLResponse)).thenReturn(List.of(newHousing));
@@ -175,7 +174,7 @@ class GetAllHousingImportTaskTest {
                 .thenThrow(new RuntimeException("Database connection error"));
 
         // When & Then
-        assertThatThrownBy(() -> importTask.importAllHousing())
+        assertThatThrownBy(() -> importTask.runImport())
                 .isInstanceOf(HousingImportException.class)
                 .hasMessage("Unexpected error during housing import")
                 .hasCauseInstanceOf(RuntimeException.class);

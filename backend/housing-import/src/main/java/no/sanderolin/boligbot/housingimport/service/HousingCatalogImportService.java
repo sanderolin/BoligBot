@@ -1,6 +1,5 @@
 package no.sanderolin.boligbot.housingimport.service;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.sanderolin.boligbot.dao.model.HousingModel;
@@ -10,8 +9,7 @@ import no.sanderolin.boligbot.housingimport.util.GraphQLHousingMapper;
 import no.sanderolin.boligbot.housingimport.util.SitGraphQLClient;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
@@ -23,22 +21,19 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Component
+@Service
 @RequiredArgsConstructor
-public class GetAllHousingImportTask {
+public class HousingCatalogImportService {
 
     private final SitGraphQLClient sitGraphQLClient;
     private final GraphQLHousingMapper graphQLHousingMapper;
     private final HousingRepository housingRepository;
 
     /**
-     * Scheduled task to import all housing items from the SIT GraphQL API.
-     * Default: every day at 16:00.
+     * Task to import all housing items from the SIT GraphQL API.
      */
-    @Scheduled(cron = "0 0 16 * * *")
     @Transactional
-    @PostConstruct
-    public void importAllHousing() {
+    public void runImport() {
         log.info("Starting housing import process");
         LocalDateTime taskStartTime = LocalDateTime.now();
         try {

@@ -48,8 +48,6 @@ public class SitGraphQLClient {
         } catch (RestClientException e) {
             log.error("Network error while calling SIT GraphQL API: {}", e.getMessage());
             throw new HousingImportException("Failed to communicate with SIT GraphQL API", e);
-        } catch (HousingImportException e) {
-            throw e;
         }
     }
 

@@ -3,7 +3,6 @@ package no.sanderolin.boligbot.housingimport.util;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import no.sanderolin.boligbot.dao.model.HousingModel;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
-import no.sanderolin.boligbot.housingimport.util.GraphQLHousingMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
