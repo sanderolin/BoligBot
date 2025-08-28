@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>no.sanderolin.boligbot</groupId>
-        <artifactId>boliggbot-parent</artifactId>
+        <artifactId>boligbot-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
     <artifactId>boligbot-app</artifactId>

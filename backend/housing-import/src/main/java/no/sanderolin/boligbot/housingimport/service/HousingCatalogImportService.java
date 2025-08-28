@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ public class HousingCatalogImportService {
     @Transactional
     public void runImport() {
         log.info("Starting housing import process");
-        LocalDateTime taskStartTime = LocalDateTime.now();
+        Instant taskStartTime = Instant.now();
         try {
             List<HousingModel> importedHousingEntities = fetchHousingEntitiesFromGraphQL();
 
@@ -54,12 +54,12 @@ public class HousingCatalogImportService {
             log.error("Unexpected error during housing import", e);
             throw new HousingImportException("Unexpected error during housing import", e);
         } finally {
-            long durationMs = Duration.between(taskStartTime, LocalDateTime.now()).toMillis();
+            long durationMs = Duration.between(taskStartTime, Instant.now()).toMillis();
             log.info("Housing import completed in {} ms", durationMs);
         }
     }
 
-    private void processHousingEntities(List<HousingModel> importedHousingEntities, LocalDateTime taskStartTime) {
+    private void processHousingEntities(List<HousingModel> importedHousingEntities, Instant taskStartTime) {
         List<String> idsOfImportedHousingEntities = importedHousingEntities.stream()
                 .map(HousingModel::getRentalObjectId)
                 .toList();

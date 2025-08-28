@@ -6,11 +6,11 @@
           http://www.liquibase.org/xml/ns/dbchangelog
           https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <changeSet id="2025-08-10-001-create-housing" author="sanderolin">
+    <changeSet id="2025-08-10-001-create-housings" author="sanderolin">
         <createTable tableName="housings">
 
             <column name="rental_object_id" type="text">
-                <constraints primaryKey="true" nullable="false" primaryKeyName="pk_housing"/>
+                <constraints primaryKey="true" primaryKeyName="pk_housings" nullable="false"/>
             </column>
 
             <column name="address" type="text">

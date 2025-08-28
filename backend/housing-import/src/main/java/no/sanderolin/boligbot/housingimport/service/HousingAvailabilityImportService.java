@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Slf4j
@@ -29,9 +29,9 @@ public class HousingAvailabilityImportService {
      * Default: every 10 seconds
      */
     @Transactional
-    public void importAvailableHousing() {
+    public void runImport() {
         log.info("Starting available housing import process");
-        LocalDateTime taskStartTime = LocalDateTime.now();
+        Instant taskStartTime = Instant.now();
         try {
             long totalHousingCount = housingRepository.count();
             if (totalHousingCount == 0) {
@@ -55,7 +55,7 @@ public class HousingAvailabilityImportService {
             log.error("Unexpected error during housing import", e);
             throw new HousingImportException("Unexpected error during housing import", e);
         } finally {
-            long durationMs = Duration.between(taskStartTime, LocalDateTime.now()).toMillis();
+            long durationMs = Duration.between(taskStartTime, Instant.now()).toMillis();
             log.info("Housing import completed in {} ms", durationMs);
         }
     }

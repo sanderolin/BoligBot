@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>no.sanderolin.boligbot</groupId>
-        <artifactId>boliggbot-parent</artifactId>
+        <artifactId>boligbot-parent</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
     <artifactId>boligbot-housing-import</artifactId>
@@ -28,8 +28,6 @@
             <artifactId>spring-retry</artifactId>
             <version>${spring.retry.version}</version>
         </dependency>
-
-
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

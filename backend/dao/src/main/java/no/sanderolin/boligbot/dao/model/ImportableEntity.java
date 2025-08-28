@@ -5,7 +5,7 @@ import jakarta.persistence.MappedSuperclass;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @EqualsAndHashCode(callSuper = true)
 @MappedSuperclass
@@ -13,5 +13,5 @@ import java.time.LocalDateTime;
 public abstract class ImportableEntity extends BaseEntity {
 
     @Column(name = "last_imported_at", nullable = false)
-    private LocalDateTime lastImportedAt;
+    private Instant lastImportedAt;
 }

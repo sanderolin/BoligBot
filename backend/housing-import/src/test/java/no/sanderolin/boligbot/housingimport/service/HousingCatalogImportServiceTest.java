@@ -13,7 +13,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 
@@ -40,15 +41,15 @@ class HousingCatalogImportServiceTest {
     private HousingModel newHousing;
     private HousingModel updatedHousing;
     private final String mockGraphQLResponse = "response";
-    private final LocalDateTime timestamp = LocalDateTime.now();
+    private final Instant timestamp = Instant.now();
 
     @BeforeEach
     void setUp() {
         existingHousing = createHousingModel("EXISTING-001", "Old Name", "Old Address",
                 "Old Type", "Old City", "Old District", BigDecimal.valueOf(10.0), 1000);
-        existingHousing.setCreatedAt(timestamp.minusDays(1));
-        existingHousing.setLastModifiedAt(timestamp.minusDays(1));
-        existingHousing.setLastImportedAt(timestamp.minusDays(1));
+        existingHousing.setCreatedAt(timestamp.minus(1, ChronoUnit.DAYS));
+        existingHousing.setLastModifiedAt(timestamp.minus(1, ChronoUnit.DAYS));
+        existingHousing.setLastImportedAt(timestamp.minus(1, ChronoUnit.DAYS));
 
         newHousing = createHousingModel("NEW-001", "New Housing", "New Address",
                 "New Type", "New City", "New District", BigDecimal.valueOf(15.0), 2000);
@@ -78,8 +79,9 @@ class HousingCatalogImportServiceTest {
         }));
     }
 
+
     @Test
-    void importAllHousing_WithExistingUnchangedHousing_ShouldOnlyUpdateImportTime() {
+    void runImport_WithExistingUnchangedHousing_ShouldOnlyUpdateImportTime() {
         HousingModel unchangedHousing = createHousingModel(existingHousing.getRentalObjectId(), existingHousing.getName(),
                 existingHousing.getAddress(), existingHousing.getHousingType(), existingHousing.getCity(),
                 existingHousing.getDistrict(), existingHousing.getAreaSqm(), existingHousing.getPricePerMonth());
@@ -95,7 +97,7 @@ class HousingCatalogImportServiceTest {
             List<HousingModel> models = (List<HousingModel>) list;
             HousingModel unchangedHousingModel = models.getFirst();
             return models.size() == 1 &&
-                   unchangedHousingModel.getLastModifiedAt().isEqual(timestamp.minusDays(1)) &&
+                   unchangedHousingModel.getLastModifiedAt().equals(timestamp.minus(1, ChronoUnit.DAYS)) &&
                    unchangedHousingModel.getLastImportedAt().isAfter(timestamp);
         }));
     }
@@ -120,7 +122,7 @@ class HousingCatalogImportServiceTest {
                    updated.getDistrict().equals(updatedHousing.getDistrict()) &&
                    updated.getAreaSqm().equals(updatedHousing.getAreaSqm()) &&
                    updated.getPricePerMonth() == updatedHousing.getPricePerMonth() &&
-                   updated.getCreatedAt().isEqual(timestamp.minusDays(1)) &&
+                   updated.getCreatedAt().equals(timestamp.minus(1, ChronoUnit.DAYS)) &&
                    updated.getLastModifiedAt().isAfter(timestamp) &&
                    updated.getLastImportedAt().isAfter(timestamp);
         }));
@@ -139,7 +141,7 @@ class HousingCatalogImportServiceTest {
     }
 
     @Test
-    void importAllHousing_WithHousingImportException_ShouldPropagateException() {
+    void runImport_WithHousingImportException_ShouldPropagateException() {
         when(sitGraphQLClient.executeGraphQLQuery(anyString()))
                 .thenThrow(new HousingImportException("exception"));
 
@@ -153,7 +155,6 @@ class HousingCatalogImportServiceTest {
 
     @Test
     void runImport_WithGraphQLMapperException_ShouldPropagateException() {
-        // Given
         when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
         when(graphQLHousingMapper.mapHousingEntities(mockGraphQLResponse))
                 .thenThrow(new HousingImportException("exception"));
@@ -167,20 +168,17 @@ class HousingCatalogImportServiceTest {
 
     @Test
     void runImport_WithDatabaseException_ShouldWrapException() {
-        // Given
         when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
         when(graphQLHousingMapper.mapHousingEntities(mockGraphQLResponse)).thenReturn(List.of(newHousing));
         when(housingRepository.findAllByRentalObjectIdIn(any()))
                 .thenThrow(new RuntimeException("Database connection error"));
 
-        // When & Then
         assertThatThrownBy(() -> importTask.runImport())
                 .isInstanceOf(HousingImportException.class)
                 .hasMessage("Unexpected error during housing import")
                 .hasCauseInstanceOf(RuntimeException.class);
     }
 
-    // Helper methods
     private HousingModel createHousingModel(String rentalObjectId, String name, String address,
                                             String housingType, String city, String district,
                                             BigDecimal area, int price) {

@@ -24,7 +24,7 @@ public class HousingAvailabilityImportScheduler {
      */
     @Scheduled(cron = "${housing.availability.import.cron}")
     public void importAvailableHousing() {
-        housingAvailabilityImportService.importAvailableHousing();
+        housingAvailabilityImportService.runImport();
     }
 
 }

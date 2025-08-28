@@ -2,15 +2,16 @@ package no.sanderolin.boligbot.dao.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDateTime;
+
+import java.time.Instant;
 
 @MappedSuperclass
 @Data
 public abstract class BaseEntity {
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(name = "last_modified_at", nullable = false)
-    private LocalDateTime lastModifiedAt;
+    private Instant lastModifiedAt;
 }
