@@ -25,6 +25,11 @@
         </dependency>
         <dependency>
             <groupId>no.sanderolin.boligbot</groupId>
+            <artifactId>boligbot-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>no.sanderolin.boligbot</groupId>
             <artifactId>boligbot-web</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -1,11 +1,11 @@
-package no.sanderolin.boligbot.web.controller;
+package no.sanderolin.boligbot.web.v1.security;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import no.sanderolin.boligbot.web.dto.LoginRequestDTO;
-import no.sanderolin.boligbot.web.dto.SignupRequestDTO;
-import no.sanderolin.boligbot.web.exception.EmailAlreadyExistsException;
-import no.sanderolin.boligbot.web.service.AuthService;
+import no.sanderolin.boligbot.web.v1.security.service.AuthService;
+import no.sanderolin.boligbot.web.v1.security.exception.EmailAlreadyExistsException;
+import no.sanderolin.boligbot.web.v1.security.request.LoginRequestDTO;
+import no.sanderolin.boligbot.web.v1.security.request.SignupRequestDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

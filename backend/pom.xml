@@ -36,5 +36,6 @@
         <module>housing-import</module>
         <module>app</module>
         <module>web</module>
+        <module>service</module>
     </modules>
 </project>

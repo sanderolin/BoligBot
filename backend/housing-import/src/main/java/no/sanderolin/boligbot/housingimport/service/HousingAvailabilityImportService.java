@@ -3,6 +3,7 @@ package no.sanderolin.boligbot.housingimport.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
+import no.sanderolin.boligbot.housingimport.dto.HousingAvailabilityDTO;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import no.sanderolin.boligbot.housingimport.util.GraphQLHousingMapper;
 import no.sanderolin.boligbot.housingimport.util.SitGraphQLClient;
@@ -25,8 +26,10 @@ public class HousingAvailabilityImportService {
     private final HousingRepository housingRepository;
 
     /**
-     * Scheduled task to import available housing ids from the SIT GraphQL API.
-     * Default: every 10 seconds
+     * Imports availability from SIT GraphQL and updates:
+     *  - availability flag for returned IDs
+     *  - availableFromDate for each returned ID
+     *  - sets others to unavailable
      */
     @Transactional
     public void runImport() {
@@ -40,39 +43,45 @@ public class HousingAvailabilityImportService {
                 return;
             }
 
-            List<String> importedAvailableHousingIds = fetchAvailableHousingIdsFromGraphQL();
-            if (importedAvailableHousingIds.isEmpty()) {
-                log.info("No available housing ids found to import");
+            List<HousingAvailabilityDTO> importedAvailableHousings = fetchAvailabilityFromGraphQL();
+            if (importedAvailableHousings.isEmpty()) {
+                log.info("No available housings found to import");
                 return;
             }
 
-            log.info("Fetched {} available housing ids from API", importedAvailableHousingIds.size());
-            processAvailableHousingIds(importedAvailableHousingIds);
+            log.info("Fetched {} availability entries from API", importedAvailableHousings.size());
+            processAvailability(importedAvailableHousings);
         } catch (HousingImportException e) {
-            log.error("Failed to import housing data: {}", e.getMessage(), e);
+            log.error("Failed to import availability data: {}", e.getMessage(), e);
             throw e;
         } catch (Exception e) {
-            log.error("Unexpected error during housing import", e);
-            throw new HousingImportException("Unexpected error during housing import", e);
+            log.error("Unexpected error during availability import", e);
+            throw new HousingImportException("Unexpected error during availability import", e);
         } finally {
             long durationMs = Duration.between(taskStartTime, Instant.now()).toMillis();
-            log.info("Housing import completed in {} ms", durationMs);
+            log.info("Availability import completed in {} ms", durationMs);
         }
     }
 
-    private void processAvailableHousingIds(List<String> importedAvailableHousingIds) {
-        int numberOfAvailableHousing = housingRepository.bulkUpdateAvailability(importedAvailableHousingIds, true);
-        int numberOfHousingsNoLongerAvailable = housingRepository.markUnavailableNotInIds(importedAvailableHousingIds);
+    private void processAvailability(List<HousingAvailabilityDTO> imported) {
+        List<String> ids = imported.stream().map(HousingAvailabilityDTO::rentalObjectId).toList();
+        int madeAvailable = housingRepository.bulkUpdateAvailability(ids, true);
+        int madeUnavailable = housingRepository.markUnavailableNotInIds(ids);
 
-        log.info("Number of available housing ids: {}", numberOfAvailableHousing);
-        log.info("Number of housing ids no longer available: {}", numberOfHousingsNoLongerAvailable);
+        int updatedDates = 0;
+        for (HousingAvailabilityDTO dto : imported) {
+            updatedDates += housingRepository.updateAvailableFromDate(dto.rentalObjectId(), dto.availableFromDate());
+        }
+
+        log.info("Availability updated. Made available: {}, made unavailable: {}, updated availableFromDate for: {}",
+                madeAvailable, madeUnavailable, updatedDates);
     }
 
     @Retryable(
             retryFor = {HousingImportException.class},
             backoff = @Backoff(delay = 1000, multiplier = 2)
     )
-    private List<String> fetchAvailableHousingIdsFromGraphQL() {
+    private List<HousingAvailabilityDTO> fetchAvailabilityFromGraphQL() {
         String getHousingEntitiesQuery = """
             {
               "operationName": "GetHousingIds",
@@ -82,15 +91,15 @@ public class HousingAvailabilityImportService {
                   "offset": 0
                 }
               },
-              "query": "query GetHousingIds($input: GetHousingsInput!) { housings(filter: $input) { housingRentalObjects { rentalObjectId } } }"
+              "query": "query GetHousingIds($input: GetHousingsInput!) { housings(filter: $input) { housingRentalObjects { rentalObjectId, availableFrom } } }"
             }
             """;
         try {
             String response = sitGraphQLClient.executeGraphQLQuery(getHousingEntitiesQuery);
-            return graphQLHousingMapper.mapHousingIds(response);
+            return graphQLHousingMapper.mapHousingAvailability(response);
         } catch (Exception e) {
-            log.error("Failed to fetch housing ids from GraphQL API", e);
-            throw new HousingImportException("Failed to fetch housing ids from GraphQL API", e);
+            log.error("Failed to fetch availability from GraphQL API", e);
+            throw new HousingImportException("Failed to fetch availability from GraphQL API", e);
         }
     }
 }

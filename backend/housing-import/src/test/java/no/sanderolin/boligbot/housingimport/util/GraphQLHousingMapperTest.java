@@ -2,11 +2,15 @@ package no.sanderolin.boligbot.housingimport.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import no.sanderolin.boligbot.dao.model.HousingModel;
+import no.sanderolin.boligbot.housingimport.dto.HousingAvailabilityDTO;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -218,51 +222,64 @@ class GraphQLHousingMapperTest {
     }
 
     @Test
-    void mapHousingIds_WithValidResponse_ShouldReturnIds() {
+    void mapHousingAvailability_WithValidResponse_ShouldReturnAvailableHousings() {
         String validHousingIdsResponse = """
             {
                 "data": {
                     "housings": {
                         "housingRentalObjects": [
                             {
-                                "rentalObjectId": "KAL11-911"
+                                "rentalObjectId": "KAL11-911",
+                                "availableFrom": "2025-09-01T00:00:00.000+02:00"
                             },
                             {
-                                "rentalObjectId": "LO9-12"
+                                "rentalObjectId": "LO9-12",
+                                "availableFrom": "2025-09-02T00:00:00.000+02:00"
                             }
                         ]
                     }
                 }
             }
             """;
-        List<String> result = graphQLHousingMapper.mapHousingIds(validHousingIdsResponse);
+        LocalDate date1 = OffsetDateTime.parse("2025-09-01T00:00:00.000+02:00")
+                .toInstant()
+                .atZone(ZoneId.of("Europe/Oslo"))
+                .toLocalDate();
+        LocalDate date2 = OffsetDateTime.parse("2025-09-02T00:00:00.000+02:00")
+                .toInstant()
+                .atZone(ZoneId.of("Europe/Oslo"))
+                .toLocalDate();
+        List<HousingAvailabilityDTO> result = graphQLHousingMapper.mapHousingAvailability(validHousingIdsResponse);
         assertThat(result).hasSize(2);
-        assertThat(result).containsExactly("KAL11-911", "LO9-12");
+        assertThat(result).containsExactly(
+                new HousingAvailabilityDTO("KAL11-911", date1),
+                new HousingAvailabilityDTO("LO9-12", date2)
+        );
     }
 
     @Test
-    void mapHousingIds_WithNullInput_ShouldThrowIllegalArgumentException() {
-        assertThatThrownBy(() -> graphQLHousingMapper.mapHousingIds(null))
+    void mapHousingAvailability_WithNullInput_ShouldThrowIllegalArgumentException() {
+        assertThatThrownBy(() -> graphQLHousingMapper.mapHousingAvailability(null))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("JSON response cannot be null or empty");
     }
 
     @Test
-    void mapHousingIds_WithEmptyInput_ShouldThrowIllegalArgumentException() {
+    void mapHousingAvailability_WithEmptyInput_ShouldThrowIllegalArgumentException() {
         assertThatThrownBy(() -> graphQLHousingMapper.mapHousingEntities("   "))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("JSON response cannot be null or empty");
     }
 
     @Test
-    void mapHousingIds_WithInvalidJson_ShouldThrowHousingImportException() {
+    void mapHousingAvailability_WithInvalidJson_ShouldThrowHousingImportException() {
         assertThatThrownBy(() -> graphQLHousingMapper.mapHousingEntities("invalid json"))
                 .isInstanceOf(HousingImportException.class)
                 .hasMessage("Failed to parse JSON response from GraphQL API");
     }
 
     @Test
-    void mapHousingIds_WithMissingHousingsField_ShouldThrowHousingImportException() {
+    void mapHousingAvailability_WithMissingHousingsField_ShouldThrowHousingImportException() {
         String responseWithoutHousings = """
             {
                 "data": {
@@ -270,20 +287,21 @@ class GraphQLHousingMapperTest {
                 }
             }
             """;
-        assertThatThrownBy(() -> graphQLHousingMapper.mapHousingIds(responseWithoutHousings))
+        assertThatThrownBy(() -> graphQLHousingMapper.mapHousingAvailability(responseWithoutHousings))
                 .isInstanceOf(HousingImportException.class)
                 .hasMessage("Invalid GraphQL response: missing 'housings.housingRentalObjects' field");
     }
 
     @Test
-    void mapHousingIds_WithItemsWithoutRentalObjectId_ShouldSkipItems() {
+    void mapHousingAvailability_WithItemsWithoutRentalObjectId_ShouldSkipItems() {
         String responseWithMissingIds = """
             {
                 "data": {
                     "housings": {
                         "housingRentalObjects": [
                             {
-                                "rentalObjectId": "VALID-001"
+                                "rentalObjectId": "VALID-001",
+                                "availableFrom": "2025-09-01T00:00:00.000+02:00"
                             },
                             {
                                 "other_field": "no_id"
@@ -292,16 +310,28 @@ class GraphQLHousingMapperTest {
                                 "rentalObjectId": ""
                             },
                             {
-                                "rentalObjectId": "VALID-002"
+                                "rentalObjectId": "VALID-002",
+                                "availableFrom": "2025-09-02T00:00:00.000+02:00"
                             }
                         ]
                     }
                 }
             }
             """;
-        List<String> result = graphQLHousingMapper.mapHousingIds(responseWithMissingIds);
+        LocalDate date1 = OffsetDateTime.parse("2025-09-01T00:00:00.000+02:00")
+                .toInstant()
+                .atZone(ZoneId.of("Europe/Oslo"))
+                .toLocalDate();
+        LocalDate date2 = OffsetDateTime.parse("2025-09-02T00:00:00.000+02:00")
+                .toInstant()
+                .atZone(ZoneId.of("Europe/Oslo"))
+                .toLocalDate();
+        List<HousingAvailabilityDTO> result = graphQLHousingMapper.mapHousingAvailability(responseWithMissingIds);
         assertThat(result).hasSize(2);
-        assertThat(result).containsExactly("VALID-001", "VALID-002");
+        assertThat(result).containsExactly(
+                new HousingAvailabilityDTO("VALID-001", date1),
+                new HousingAvailabilityDTO("VALID-002", date2)
+        );
     }
 
     private void assertHousingModel(HousingModel model, String expectedRentalObjectId, String expectedName,

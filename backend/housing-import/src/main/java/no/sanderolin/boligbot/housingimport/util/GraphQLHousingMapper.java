@@ -6,11 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.sanderolin.boligbot.dao.model.HousingModel;
+import no.sanderolin.boligbot.housingimport.dto.HousingAvailabilityDTO;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +25,8 @@ import java.util.List;
 public class GraphQLHousingMapper {
 
     private final ObjectMapper objectMapper;
+
+    private static final ZoneId ZONE_OSLO = ZoneId.of("Europe/Oslo");
 
     /**
      * Maps the JSON response from the GraphQL query to a list of HousingModel objects.
@@ -63,7 +70,7 @@ public class GraphQLHousingMapper {
         }
     }
 
-    public List<String> mapHousingIds(String jsonResponse) {
+    public List<HousingAvailabilityDTO> mapHousingAvailability(String jsonResponse) {
         validateInput(jsonResponse);
 
         try {
@@ -71,7 +78,7 @@ public class GraphQLHousingMapper {
             validateHousingIdsJsonStructure(root);
 
             JsonNode items = root.path("data").path("housings").path("housingRentalObjects");
-            List<String> result = new ArrayList<>();
+            List<HousingAvailabilityDTO> result = new ArrayList<>();
             int processedCount = 0;
             int skippedCount = 0;
 
@@ -83,7 +90,10 @@ public class GraphQLHousingMapper {
                         skippedCount++;
                         continue;
                     }
-                    result.add(rentalObjectId);
+                    String availableFromRaw = getStringValue(item, "availableFrom");
+                    LocalDate availableFromDate = toOsloDateOrNull(availableFromRaw);
+
+                    result.add(new HousingAvailabilityDTO(rentalObjectId, availableFromDate));
                     processedCount++;
                 } catch (Exception e) {
                     log.warn("Failed to extract rentalObjectId from item: {}", item.toString(), e);
@@ -98,6 +108,17 @@ public class GraphQLHousingMapper {
             throw e;
         } catch (Exception e) {
             throw new HousingImportException("Failed to map GraphQL response to housing IDs", e);
+        }
+    }
+
+    private LocalDate toOsloDateOrNull(String offsetDateTimeString) {
+        if (!StringUtils.hasText(offsetDateTimeString)) return null;
+        try {
+            Instant instant = OffsetDateTime.parse(offsetDateTimeString).toInstant();
+            return instant.atZone(ZONE_OSLO).toLocalDate();
+        } catch (Exception e) {
+            log.warn("Invalid availableFrom value: {}", offsetDateTimeString, e);
+            return null;
         }
     }
 

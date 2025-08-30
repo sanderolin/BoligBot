@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(
-        name = "housing.availability.import.enabled",
+        name = "housing.availability.import.scheduled.enabled",
         havingValue = "true"
 )
 public class HousingAvailabilityImportScheduler {

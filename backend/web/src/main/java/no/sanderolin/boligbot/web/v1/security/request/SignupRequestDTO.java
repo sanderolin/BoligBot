@@ -1,4 +1,4 @@
-package no.sanderolin.boligbot.web.dto;
+package no.sanderolin.boligbot.web.v1.security.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

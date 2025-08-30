@@ -1,4 +1,4 @@
-package no.sanderolin.boligbot.web.security;
+package no.sanderolin.boligbot.web.v1.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;

@@ -1,12 +1,12 @@
-package no.sanderolin.boligbot.web.service;
+package no.sanderolin.boligbot.web.v1.security.service;
 
 import lombok.RequiredArgsConstructor;
 import no.sanderolin.boligbot.dao.model.UserModel;
 import no.sanderolin.boligbot.dao.repository.UserRepository;
-import no.sanderolin.boligbot.web.dto.LoginRequestDTO;
-import no.sanderolin.boligbot.web.dto.SignupRequestDTO;
-import no.sanderolin.boligbot.web.exception.EmailAlreadyExistsException;
-import no.sanderolin.boligbot.web.security.JwtUtil;
+import no.sanderolin.boligbot.web.v1.security.JwtUtil;
+import no.sanderolin.boligbot.web.v1.security.request.LoginRequestDTO;
+import no.sanderolin.boligbot.web.v1.security.request.SignupRequestDTO;
+import no.sanderolin.boligbot.web.v1.security.exception.EmailAlreadyExistsException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
