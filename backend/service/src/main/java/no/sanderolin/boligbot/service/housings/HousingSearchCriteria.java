@@ -3,13 +3,21 @@ package no.sanderolin.boligbot.service.housings;
 import lombok.Builder;
 import org.springframework.data.domain.Sort;
 
+import java.math.BigDecimal;
 import java.util.Set;
 
 @Builder(setterPrefix = "set")
 public record HousingSearchCriteria(
+        String rentalObjectId,
+        String address,
+        String name,
+        String housingType,
         String city,
         String district,
-        String housingType,
+        Integer minPricePerMonth,
+        Integer maxPricePerMonth,
+        BigDecimal minAreaSqm,
+        BigDecimal maxAreaSqm,
         Integer page,
         Integer size,
         String sortBy,
@@ -59,5 +67,18 @@ public record HousingSearchCriteria(
         Sort.Order primary = new Sort.Order(dir, sortByOrDefault());
         Sort.Order tieBreaker = Sort.Order.asc("rentalObjectId");
         return Sort.by(primary).and(Sort.by(tieBreaker));
+    }
+
+    public Integer minPricePerMonthOrNull() {
+        return (minPricePerMonth == null || minPricePerMonth <= 0) ? null : minPricePerMonth;
+    }
+    public Integer maxPricePerMonthOrNull() {
+        return (maxPricePerMonth == null || maxPricePerMonth <= 0) ? null : maxPricePerMonth;
+    }
+    public BigDecimal minAreaOrNull() {
+        return (minAreaSqm == null || minAreaSqm.compareTo(BigDecimal.ZERO) <= 0) ? null : minAreaSqm;
+    }
+    public BigDecimal maxAreaOrNull() {
+        return (maxAreaSqm == null || maxAreaSqm.compareTo(BigDecimal.ZERO) <= 0) ? null : maxAreaSqm;
     }
 }

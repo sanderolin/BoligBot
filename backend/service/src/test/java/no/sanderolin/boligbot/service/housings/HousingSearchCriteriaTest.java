@@ -6,6 +6,8 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.data.domain.Sort;
 
+import java.math.BigDecimal;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 class HousingSearchCriteriaTest {
@@ -246,64 +248,124 @@ class HousingSearchCriteriaTest {
     }
 
     @Test
-    void builder_ShouldCreateInstanceWithAllFields() {
+    void minPriceOrNull_WhenMinPriceIsNull_ShouldReturnNull() {
         HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setCity("Oslo")
-                .setDistrict("Sentrum")
-                .setHousingType("Apartment")
-                .setPage(1)
-                .setSize(10)
-                .setSortBy("pricePerMonth")
-                .setSortDirection("desc")
+                .setMinPricePerMonth(null)
                 .build();
 
-        assertEquals("Oslo", criteria.city());
-        assertEquals("Sentrum", criteria.district());
-        assertEquals("Apartment", criteria.housingType());
-        assertEquals(1, criteria.page());
-        assertEquals(10, criteria.size());
-        assertEquals("pricePerMonth", criteria.sortBy());
-        assertEquals("desc", criteria.sortDirection());
+        assertNull(criteria.minPricePerMonth());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {-10, -1, 0})
+    void minPriceOrNull_WhenMinPriceIsZeroOrNegative_ShouldReturnNull(int minPrice) {
+        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
+                .setMinPricePerMonth(minPrice)
+                .build();
+
+        assertNull(criteria.minPricePerMonthOrNull());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 10, 15000})
+    void minPriceOrNull_WhenMinPriceIsPositive_ShouldReturnSame(int minPrice) {
+        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
+                .setMinPricePerMonth(minPrice)
+                .build();
+
+        assertEquals(minPrice, criteria.minPricePerMonthOrNull());
     }
 
     @Test
-    void builder_WithNullValues_ShouldAllowNullFields() {
+    void maxPriceOrNull_WhenMaxPriceIsNull_ShouldReturnNull() {
         HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setCity(null)
-                .setDistrict(null)
-                .setHousingType(null)
-                .setPage(null)
-                .setSize(null)
-                .setSortBy(null)
-                .setSortDirection(null)
+                .setMaxPricePerMonth(null)
                 .build();
 
-        assertNull(criteria.city());
-        assertNull(criteria.district());
-        assertNull(criteria.housingType());
-        assertNull(criteria.page());
-        assertNull(criteria.size());
-        assertNull(criteria.sortBy());
-        assertNull(criteria.sortDirection());
+        assertNull(criteria.maxPricePerMonthOrNull());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {-5, -1, 0})
+    void maxPriceOrNull_WhenMaxPriceIsZeroOrNegative_ShouldReturnNull(int maxPrice) {
+        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
+                .setMaxPricePerMonth(maxPrice)
+                .build();
+
+        assertNull(criteria.maxPricePerMonthOrNull());
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {1, 9999})
+    void maxPriceOrNull_WhenMaxPriceIsPositive_ShouldReturnSame(int maxPrice) {
+        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
+                .setMaxPricePerMonth(maxPrice)
+                .build();
+
+        assertEquals(maxPrice, criteria.maxPricePerMonthOrNull());
     }
 
     @Test
-    void criteriaIntegration_ShouldWorkEndToEnd() {
+    void minAreaOrNull_WhenMinAreaIsNull_ShouldReturnNull() {
         HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setPage(2)
-                .setSize(15)
-                .setSortBy("pricePerMonth")
-                .setSortDirection("desc")
+                .setMinAreaSqm(null)
                 .build();
 
-        assertEquals(2, criteria.pageOrDefault());
-        assertEquals(15, criteria.sizeOrDefault());
-        assertEquals("pricePerMonth", criteria.sortByOrDefault());
-        assertEquals(Sort.Direction.DESC, criteria.sortDirectionOrDefault());
+        assertNull(criteria.minAreaOrNull());
+    }
 
-        Sort sort = criteria.toSpringSort();
-        assertEquals(2, sort.toList().size());
-        assertEquals("pricePerMonth", sort.toList().get(0).getProperty());
-        assertEquals("rentalObjectId", sort.toList().get(1).getProperty());
+    @ParameterizedTest
+    @ValueSource(strings = {"-10", "-1", "0", "0.0"})
+    void minAreaOrNull_WhenMinAreaIsZeroOrNegative_ShouldReturnNull(String value) {
+        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
+                .setMinAreaSqm(new BigDecimal(value))
+                .build();
+
+        assertNull(criteria.minAreaOrNull());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0.1", "1", "25", "45.5"})
+    void minAreaOrNull_WhenMinAreaIsPositive_ShouldReturnSame(String value) {
+        BigDecimal expected = new BigDecimal(value);
+        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
+                .setMinAreaSqm(expected)
+                .build();
+
+        BigDecimal result = criteria.minAreaOrNull();
+        assertNotNull(result);
+        assertEquals(0, result.compareTo(expected));
+    }
+
+    @Test
+    void maxAreaOrNull_WhenMaxAreaIsNull_ShouldReturnNull() {
+        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
+                .setMaxAreaSqm(null)
+                .build();
+
+        assertNull(criteria.maxAreaOrNull());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"-3", "-0.1", "0", "0.00"})
+    void maxAreaOrNull_WhenMaxAreaIsZeroOrNegative_ShouldReturnNull(String value) {
+        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
+                .setMaxAreaSqm(new BigDecimal(value))
+                .build();
+
+        assertNull(criteria.maxAreaOrNull());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0.5", "10", "30.75"})
+    void maxAreaOrNull_WhenMaxAreaIsPositive_ShouldReturnSame(String value) {
+        BigDecimal expected = new BigDecimal(value);
+        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
+                .setMaxAreaSqm(expected)
+                .build();
+
+        BigDecimal result = criteria.maxAreaOrNull();
+        assertNotNull(result);
+        assertEquals(0, result.compareTo(expected));
     }
 }

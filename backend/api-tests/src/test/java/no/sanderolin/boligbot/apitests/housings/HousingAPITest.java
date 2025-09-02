@@ -112,6 +112,68 @@ public class HousingAPITest extends AbstractAPITest {
     }
 
     @Test
+    void testSearchHousings_ByRentalObjectId_ReturnsRelevantHousings() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("rentalObjectId", "3")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[*].rentalObjectId",
+                        contains(seededHousingModels.get(2).getRentalObjectId())))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void testSearchHousings_ByAddress_ReturnsRelevantHousings() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("address", "Address 5")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[*].rentalObjectId",
+                        contains(seededHousingModels.getLast().getRentalObjectId())))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void testSearchHousings_ByName_ReturnsRelevantHousings() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("name", "Name 2")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[*].rentalObjectId",
+                        contains(seededHousingModels.get(1).getRentalObjectId())))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void testSearchHousings_ByHousingType_ReturnsRelevantHousings() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("housingType", "Dorm in collective")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[*].rentalObjectId",
+                        containsInAnyOrder(
+                                seededHousingModels.get(3).getRentalObjectId(),
+                                seededHousingModels.get(4).getRentalObjectId())))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
     void testSearchHousings_ByCity_ReturnsRelevantHousings() throws Exception {
         mockMvc.perform(get("/api/v1/housings")
                         .param("city", "Trondheim")
@@ -148,9 +210,27 @@ public class HousingAPITest extends AbstractAPITest {
     }
 
     @Test
-    void testSearchHousings_ByHousingType_ReturnsRelevantHousings() throws Exception {
+    void testSearchHousings_ByMinPrice_ReturnsRelevantHousings() throws Exception {
         mockMvc.perform(get("/api/v1/housings")
-                        .param("housingType", "Dorm in collective")
+                        .param("minPricePerMonth", "8000")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.items[*].rentalObjectId",
+                        containsInAnyOrder(
+                                seededHousingModels.getFirst().getRentalObjectId(),
+                                seededHousingModels.get(1).getRentalObjectId(),
+                                seededHousingModels.get(2).getRentalObjectId())))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void testSearchHousings_ByMaxPrice_ReturnsRelevantHousings() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("maxPricePerMonth", "7000")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(2)))
@@ -162,6 +242,91 @@ public class HousingAPITest extends AbstractAPITest {
                 .andExpect(jsonPath("$.size").value(20))
                 .andExpect(jsonPath("$.total").value(2))
                 .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void testSearchHousings_ByMinAndMaxPrice_ReturnsRelevantHousings() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("minPricePerMonth", "8001")
+                        .param("maxPricePerMonth", "9000")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[*].rentalObjectId",
+                        contains(seededHousingModels.getFirst().getRentalObjectId())))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void testSearchHousings_ByMinArea_ReturnsRelevantHousings() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("minAreaSqm", "17")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(2)))
+                .andExpect(jsonPath("$.items[*].rentalObjectId",
+                        containsInAnyOrder(
+                                seededHousingModels.getFirst().getRentalObjectId(),
+                                seededHousingModels.get(1).getRentalObjectId())))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void testSearchHousings_ByMaxArea_ReturnsRelevantHousings() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("maxAreaSqm", "16")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(3)))
+                .andExpect(jsonPath("$.items[*].rentalObjectId",
+                        containsInAnyOrder(
+                                seededHousingModels.get(2).getRentalObjectId(),
+                                seededHousingModels.get(3).getRentalObjectId(),
+                                seededHousingModels.get(4).getRentalObjectId())))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.total").value(3))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void testSearchHousings_ByMinAndMaxArea_ReturnsRelevantHousings() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("minAreaSqm", "14")
+                        .param("maxAreaSqm", "17")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[*].rentalObjectId",
+                        contains(seededHousingModels.get(2).getRentalObjectId())))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.hasNext").value(false));
+    }
+
+    @Test
+    void testSearchHousings_WithInvalidMinAndMaxPrice_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("minPricePerMonth", "20")
+                        .param("maxPricePerMonth", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testSearchHousings_WithInvalidMinAndMaxArea_ReturnsBadRequest() throws Exception {
+        mockMvc.perform(get("/api/v1/housings")
+                        .param("minAreaSqm", "20")
+                        .param("maxAreaSqm", "10")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

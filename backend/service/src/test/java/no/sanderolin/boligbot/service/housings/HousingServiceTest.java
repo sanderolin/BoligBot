@@ -6,7 +6,6 @@ import org.hibernate.ObjectNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
@@ -48,7 +47,9 @@ class HousingServiceTest {
     @Test
     void searchHousings_ShouldCallRepositoryWithSpecificationAndPageable() {
         HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setCity("Moholt")
+                .setCity("Trondheim")
+                .setDistrict("Moholt")
+                .setHousingType("1-room apartment")
                 .setPage(1)
                 .setSize(10)
                 .build();
@@ -139,29 +140,29 @@ class HousingServiceTest {
     }
 
     @Test
-    void getHousingById_WithExistingId_ShouldReturnHousing() {
-        String id = "r123";
+    void getHousingByRentalObjectId_WithExistingRentalObjectId_ShouldReturnHousing() {
+        String rentalObjectId = "r123";
         HousingModel model = new HousingModel();
 
-        when(housingRepository.findById(id)).thenReturn(java.util.Optional.of(model));
+        when(housingRepository.findById(rentalObjectId)).thenReturn(java.util.Optional.of(model));
 
-        HousingModel result = housingService.getHousingById(id);
+        HousingModel result = housingService.getHousingByRentalObjectId(rentalObjectId);
 
         assertSame(model, result);
-        verify(housingRepository).findById(id);
+        verify(housingRepository).findById(rentalObjectId);
         verifyNoMoreInteractions(housingRepository);
     }
 
     @Test
-    void getHousingById_WithMissingId_ShouldThrowIllegalArgumentException() {
-        String id = "missing-42";
-        when(housingRepository.findById(id)).thenReturn(java.util.Optional.empty());
+    void getHousingByRentalObjectId_WithMissingRentalObjectId_ShouldThrowIllegalArgumentException() {
+        String rentalObjectId = "missing-42";
+        when(housingRepository.findById(rentalObjectId)).thenReturn(java.util.Optional.empty());
 
         assertThrows(ObjectNotFoundException.class, () ->
-            housingService.getHousingById(id)
+            housingService.getHousingByRentalObjectId(rentalObjectId)
         );
 
-        verify(housingRepository).findById(id);
+        verify(housingRepository).findById(rentalObjectId);
     }
 
 }
