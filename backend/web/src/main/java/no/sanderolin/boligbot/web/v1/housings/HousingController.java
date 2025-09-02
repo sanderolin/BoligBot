@@ -6,11 +6,9 @@ import no.sanderolin.boligbot.service.housings.HousingSearchCriteria;
 import no.sanderolin.boligbot.service.housings.HousingService;
 import no.sanderolin.boligbot.web.v1.common.response.PageResponse;
 import no.sanderolin.boligbot.web.v1.housings.response.HousingDTO;
+import org.hibernate.ObjectNotFoundException;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -46,5 +44,15 @@ public class HousingController {
                         HousingDTO::createFromModel
                 )
         );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<HousingDTO> getHousingById(@PathVariable(name = "id") String id) {
+        try {
+            HousingDTO housingDTO = HousingDTO.createFromModel(housingService.getHousingById(id));
+            return ResponseEntity.ok(housingDTO);
+        } catch (ObjectNotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

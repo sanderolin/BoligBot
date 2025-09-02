@@ -2,9 +2,11 @@ package no.sanderolin.boligbot.service.housings;
 
 import no.sanderolin.boligbot.dao.model.HousingModel;
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
+import org.hibernate.ObjectNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
@@ -135,4 +137,31 @@ class HousingServiceTest {
         assertThrows(RuntimeException.class, () -> housingService.searchHousings(criteria));
         verify(housingRepository).findAll(ArgumentMatchers.<Specification<HousingModel>>any(), any(Pageable.class));
     }
+
+    @Test
+    void getHousingById_WithExistingId_ShouldReturnHousing() {
+        String id = "r123";
+        HousingModel model = new HousingModel();
+
+        when(housingRepository.findById(id)).thenReturn(java.util.Optional.of(model));
+
+        HousingModel result = housingService.getHousingById(id);
+
+        assertSame(model, result);
+        verify(housingRepository).findById(id);
+        verifyNoMoreInteractions(housingRepository);
+    }
+
+    @Test
+    void getHousingById_WithMissingId_ShouldThrowIllegalArgumentException() {
+        String id = "missing-42";
+        when(housingRepository.findById(id)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(ObjectNotFoundException.class, () ->
+            housingService.getHousingById(id)
+        );
+
+        verify(housingRepository).findById(id);
+    }
+
 }

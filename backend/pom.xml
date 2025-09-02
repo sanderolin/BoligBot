@@ -21,6 +21,8 @@
         <jakarta.validation.version>3.1.1</jakarta.validation.version>
         <spring.retry.version>2.0.12</spring.retry.version>
         <jjwt.version>0.12.7</jjwt.version>
+        <apache.commons.version>1.28.0</apache.commons.version>
+        <testcontainers.version>1.21.3</testcontainers.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -37,5 +39,6 @@
         <module>app</module>
         <module>web</module>
         <module>service</module>
+        <module>api-tests</module>
     </modules>
 </project>

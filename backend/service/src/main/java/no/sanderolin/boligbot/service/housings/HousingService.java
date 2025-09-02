@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.sanderolin.boligbot.dao.model.HousingModel;
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
+import org.hibernate.ObjectNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,6 +31,10 @@ public class HousingService {
                 eqIgnoreCase("housingType", criteria.housingType())
         );
         return housingRepository.findAll(spec, pageable);
+    }
+
+    public HousingModel getHousingById(String id) throws IllegalArgumentException {
+        return housingRepository.findById(id).orElseThrow(() -> new ObjectNotFoundException("Housing with id " + id + " not found", HousingModel.class));
     }
 
     private Specification<HousingModel> eqIgnoreCase(String field, String value) {
