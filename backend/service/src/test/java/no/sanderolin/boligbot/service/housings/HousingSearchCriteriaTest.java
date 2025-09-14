@@ -2,7 +2,7 @@ package no.sanderolin.boligbot.service.housings;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.data.domain.Sort;
 
@@ -94,109 +94,34 @@ class HousingSearchCriteriaTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "  ", "\t", "\n"})
-    void sortByOrDefault_WhenSortByIsNullOrBlank_ShouldReturnDefaultSort(String sortBy) {
+    @EnumSource(HousingSortBy.class)
+    void sortByOrDefault_WhenSortByIsValid_ShouldReturnCorrectSortBy(HousingSortBy sortBy) {
         HousingSearchCriteria criteria = HousingSearchCriteria.builder()
                 .setSortBy(sortBy)
                 .build();
 
-        String result = criteria.sortByOrDefault();
-
-        assertEquals("availableFromDate", result);
-    }
-
-    @Test
-    void sortByOrDefault_WhenSortByIsNull_ShouldReturnDefaultSort() {
-        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setSortBy(null)
-                .build();
-
-        String result = criteria.sortByOrDefault();
-
-        assertEquals("availableFromDate", result);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"invalidField", "notWhitelisted", "randomField"})
-    void sortByOrDefault_WhenSortByIsNotInWhitelist_ShouldReturnDefaultSort(String sortBy) {
-        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setSortBy(sortBy)
-                .build();
-
-        String result = criteria.sortByOrDefault();
-
-        assertEquals("availableFromDate", result);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"availableFromDate", "pricePerMonth", "name", "areaSqm"})
-    void sortByOrDefault_WhenSortByIsInWhitelist_ShouldReturnTrimmedValue(String sortBy) {
-        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setSortBy("  " + sortBy + "  ")
-                .build();
-
-        String result = criteria.sortByOrDefault();
+        HousingSortBy result = criteria.sortByOrDefault();
 
         assertEquals(sortBy, result);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "  ", "\t", "\n"})
-    void sortDirectionOrDefault_WhenSortDirectionIsBlank_ShouldReturnDefaultDirection(String direction) {
+    @EnumSource(SortDirection.class)
+    void sortDirectionOrDefault_WhenSortDirectionIsValid_ShouldReturnCorrectSortDirection(SortDirection direction) {
         HousingSearchCriteria criteria = HousingSearchCriteria.builder()
                 .setSortDirection(direction)
                 .build();
 
-        Sort.Direction result = criteria.sortDirectionOrDefault();
+        SortDirection result = criteria.sortDirectionOrDefault();
 
-        assertEquals(Sort.Direction.ASC, result);
-    }
-
-    @Test
-    void sortDirectionOrDefault_WhenSortDirectionIsNull_ShouldReturnDefaultDirection() {
-        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setSortDirection(null)
-                .build();
-
-        Sort.Direction result = criteria.sortDirectionOrDefault();
-
-        assertEquals(Sort.Direction.ASC, result);
-    }
-
-    @ParameterizedTest
-    @CsvSource({
-            "desc, DESC",
-            "DESC, DESC",
-            "Desc, DESC",
-            "DESC, DESC"
-    })
-    void sortDirectionOrDefault_WhenSortDirectionIsDesc_ShouldReturnDesc(String input, Sort.Direction expected) {
-        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setSortDirection(input)
-                .build();
-
-        Sort.Direction result = criteria.sortDirectionOrDefault();
-
-        assertEquals(expected, result);
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"asc", "ASC", "Asc", "invalid", "random", "up", "down"})
-    void sortDirectionOrDefault_WhenSortDirectionIsNotDesc_ShouldReturnAsc(String direction) {
-        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setSortDirection(direction)
-                .build();
-
-        Sort.Direction result = criteria.sortDirectionOrDefault();
-
-        assertEquals(Sort.Direction.ASC, result);
+        assertEquals(direction, result);
     }
 
     @Test
     void toSpringSort_ShouldCreateSortWithPrimaryAndTieBreaker() {
         HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setSortBy("pricePerMonth")
-                .setSortDirection("desc")
+                .setSortBy(HousingSortBy.PRICE_PER_MONTH)
+                .setSortDirection(SortDirection.DESC)
                 .build();
 
         Sort result = criteria.toSpringSort();
@@ -236,8 +161,8 @@ class HousingSearchCriteriaTest {
     @Test
     void toSpringSort_WithInvalidSortBy_ShouldUseDefault() {
         HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setSortBy("invalidField")
-                .setSortDirection("desc")
+                .setSortBy(null)
+                .setSortDirection(SortDirection.DESC)
                 .build();
 
         Sort result = criteria.toSpringSort();

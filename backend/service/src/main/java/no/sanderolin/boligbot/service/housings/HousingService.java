@@ -41,7 +41,7 @@ public class HousingService {
         return housingRepository.findAll(spec, pageable);
     }
 
-    public HousingModel getHousingByRentalObjectId(String id) throws IllegalArgumentException {
+    public HousingModel getHousingByRentalObjectId(String id) throws ObjectNotFoundException {
         return housingRepository.findById(id).orElseThrow(() -> new ObjectNotFoundException("Housing with id " + id + " not found", HousingModel.class));
     }
 

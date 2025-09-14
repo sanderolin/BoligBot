@@ -89,8 +89,8 @@ class HousingServiceTest {
     @Test
     void searchHousings_ShouldCreateSortFromCriteria() {
         HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setSortBy("pricePerMonth")
-                .setSortDirection("desc")
+                .setSortBy(HousingSortBy.PRICE_PER_MONTH)
+                .setSortDirection(SortDirection.DESC)
                 .build();
 
         Page<HousingModel> expectedPage = new PageImpl<>(List.of());
@@ -154,7 +154,7 @@ class HousingServiceTest {
     }
 
     @Test
-    void getHousingByRentalObjectId_WithMissingRentalObjectId_ShouldThrowIllegalArgumentException() {
+    void getHousingByRentalObjectId_WithMissingRentalObjectId_ShouldThrowObjectNotFoundException() {
         String rentalObjectId = "missing-42";
         when(housingRepository.findById(rentalObjectId)).thenReturn(java.util.Optional.empty());
 

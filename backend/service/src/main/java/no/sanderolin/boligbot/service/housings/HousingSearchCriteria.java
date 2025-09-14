@@ -4,7 +4,6 @@ import lombok.Builder;
 import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
-import java.util.Set;
 
 @Builder(setterPrefix = "set")
 public record HousingSearchCriteria(
@@ -20,16 +19,15 @@ public record HousingSearchCriteria(
         BigDecimal maxAreaSqm,
         Integer page,
         Integer size,
-        String sortBy,
-        String sortDirection
+        HousingSortBy sortBy,
+        SortDirection sortDirection
 ) {
     private static final int DEFAULT_PAGE = 0;
     private static final int DEFAULT_SIZE = 20;
     private static final int MAX_SIZE = 100;
 
-    private static final String DEFAULT_SORT_BY = "availableFromDate";
-    private static final Sort.Direction DEFAULT_SORT_DIRECTION = Sort.Direction.ASC;
-    private static final Set<String> SORT_WHITELIST = Set.of(DEFAULT_SORT_BY, "pricePerMonth", "name", "areaSqm");
+    private static final HousingSortBy DEFAULT_SORT_BY = HousingSortBy.AVAILABLE_FROM_DATE;
+    private static final SortDirection DEFAULT_SORT_DIRECTION = SortDirection.ASC;
 
     public int pageOrDefault() {
         return page == null ? DEFAULT_PAGE : Math.max(0, page);
@@ -40,32 +38,21 @@ public record HousingSearchCriteria(
         return Math.min(MAX_SIZE, Math.max(1, s));
     }
 
-    public String sortByOrDefault() {
-        if (sortBy == null || sortBy.isBlank()) {
-            return DEFAULT_SORT_BY;
-        }
-        String prop = sortBy.trim();
-        if (!SORT_WHITELIST.contains(prop)) {
-            return DEFAULT_SORT_BY;
-        }
-        return prop;
+    public HousingSortBy sortByOrDefault() {
+        return (sortBy == null) ? DEFAULT_SORT_BY : sortBy;
     }
 
-    public Sort.Direction sortDirectionOrDefault() {
-        if (sortDirection == null || sortDirection.isBlank()) {
-            return DEFAULT_SORT_DIRECTION;
-        }
-        String direction = sortDirection.trim().toLowerCase();
-        if ("desc".equals(direction)) {
-            return Sort.Direction.DESC;
-        }
-        return Sort.Direction.ASC;
+    public SortDirection sortDirectionOrDefault() {
+        return (sortDirection == null) ? DEFAULT_SORT_DIRECTION : sortDirection;
     }
 
     public Sort toSpringSort() {
-        Sort.Direction dir = sortDirectionOrDefault();
-        Sort.Order primary = new Sort.Order(dir, sortByOrDefault());
+        Sort.Direction dir = sortDirectionOrDefault().toSpring();
+        String prop = sortByOrDefault().property();
+
+        Sort.Order primary = new Sort.Order(dir, prop);
         Sort.Order tieBreaker = Sort.Order.asc("rentalObjectId");
+
         return Sort.by(primary).and(Sort.by(tieBreaker));
     }
 

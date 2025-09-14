@@ -1,18 +1,26 @@
 package no.sanderolin.boligbot.web.v1.housings;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import no.sanderolin.boligbot.service.housings.HousingSearchCriteria;
 import no.sanderolin.boligbot.service.housings.HousingService;
-import no.sanderolin.boligbot.web.v1.common.response.PageResponse;
+import no.sanderolin.boligbot.web.v1.common.exception.NotFoundException;
+import no.sanderolin.boligbot.web.v1.common.response.PagedResponse;
+import no.sanderolin.boligbot.web.v1.housings.converters.HousingModelToDTOConverter;
+import no.sanderolin.boligbot.web.v1.housings.converters.HousingSearchRequestToCriteriaConverter;
+import no.sanderolin.boligbot.web.v1.housings.request.HousingSearchRequest;
 import no.sanderolin.boligbot.web.v1.housings.response.HousingDTO;
 import org.hibernate.ObjectNotFoundException;
-import org.springframework.http.HttpStatus;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.math.BigDecimal;
 
 @Slf4j
 @RestController
@@ -22,67 +30,61 @@ public class HousingController {
 
     private final HousingService housingService;
 
+    @Operation(
+            summary = "Search housings",
+            description = """
+                    Search for housings based on various criteria. All parameters are optional.
+                    If no parameters are provided, all housings will be returned (paginated).
+                    """,
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successful operation",
+                            useReturnTypeSchema = true
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "Invalid request parameters",
+                            content = @Content(
+                                    mediaType = "application/problem+json",
+                                    schema = @Schema(implementation = ProblemDetail.class),
+                                    examples = {
+                                            @ExampleObject(
+                                                    name = "Invalid sortBy",
+                                                    value = """
+                                                    {
+                                                      "type": "urn:boligbot:problem:bad-request",
+                                                      "title": "Bad Request",
+                                                      "status": 400,
+                                                      "detail": "Invalid sortBy. Allowed: [availableFromDate, pricePerMonth, areaSqm, city, district]",
+                                                      "instance": "/api/v1/housings"
+                                                    }"""
+                                            ),
+                                            @ExampleObject(
+                                                    name = "Reversed price range",
+                                                    value = """
+                                                    {
+                                                      "type": "urn:boligbot:problem:bad-request",
+                                                      "title": "Bad Request",
+                                                      "status": 400,
+                                                      "detail": "minPricePerMonth cannot be greater than maxPricePerMonth",
+                                                      "instance": "/api/v1/housings"
+                                                    }"""
+                                            )
+                                    }
+                            )
+                    )
+            }
+    )
     @GetMapping
-    public ResponseEntity<?> searchHousings(
-            @RequestParam(name = "rentalObjectId", required = false) String rentalObjectId,
-            @RequestParam(name = "address", required = false) String address,
-            @RequestParam(name = "name", required = false) String name,
-            @RequestParam(name = "housingType", required = false) String housingType,
-            @RequestParam(name = "city", required = false) String city,
-            @RequestParam(name = "district", required = false) String district,
-            @RequestParam(name = "minPricePerMonth", required = false) Integer minPricePerMonth,
-            @RequestParam(name = "maxPricePerMonth", required = false) Integer maxPricePerMonth,
-            @RequestParam(name = "minAreaSqm", required = false) BigDecimal minAreaSqm,
-            @RequestParam(name = "maxAreaSqm", required = false) BigDecimal maxAreaSqm,
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "20") int size,
-            @RequestParam(name = "sortBy", required = false) String sortBy,
-            @RequestParam(name = "sortDirection", required = false) String sortDirection
-    ) {
-        HousingSearchCriteria criteria = HousingSearchCriteria.builder()
-                .setRentalObjectId(rentalObjectId)
-                .setAddress(address)
-                .setName(name)
-                .setHousingType(housingType)
-                .setCity(city)
-                .setDistrict(district)
-                .setMinPricePerMonth(minPricePerMonth)
-                .setMaxPricePerMonth(maxPricePerMonth)
-                .setMinAreaSqm(minAreaSqm)
-                .setMaxAreaSqm(maxAreaSqm)
-                .setPage(page)
-                .setSize(size)
-                .setSortBy(sortBy)
-                .setSortDirection(sortDirection)
-                .build();
+    public ResponseEntity<PagedResponse<HousingDTO>> searchHousings(
+            @Valid @ParameterObject HousingSearchRequest request) {
+        HousingSearchCriteria criteria = HousingSearchRequestToCriteriaConverter.toCriteria(request);
 
-        Integer normMinPrice = criteria.minPricePerMonthOrNull();
-        Integer normMaxPrice = criteria.maxPricePerMonthOrNull();
-        BigDecimal normMinArea = criteria.minAreaOrNull();
-        BigDecimal normMaxArea = criteria.maxAreaOrNull();
-
-        if (normMinPrice != null && normMaxPrice != null && normMinPrice > normMaxPrice) {
-            ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-                    HttpStatus.BAD_REQUEST,
-                    "minPricePerMonth cannot be greater than maxPricePerMonth"
-            );
-            pd.setProperty("minPricePerMonth", normMinPrice);
-            pd.setProperty("maxPricePerMonth", normMaxPrice);
-            return ResponseEntity.badRequest().body(pd);
-        }
-        if (normMinArea != null && normMaxArea != null && normMinArea.compareTo(normMaxArea) > 0) {
-            ProblemDetail pd = ProblemDetail.forStatusAndDetail(
-                    HttpStatus.BAD_REQUEST,
-                    "minAreaSqm cannot be greater than maxAreaSqm"
-            );
-            pd.setProperty("minAreaSqm", normMinArea);
-            pd.setProperty("maxAreaSqm", normMaxArea);
-            return ResponseEntity.badRequest().body(pd);
-        }
         return ResponseEntity.ok(
-                PageResponse.of(
+                PagedResponse.of(
                         housingService.searchHousings(criteria),
-                        HousingDTO::createFromModel
+                        HousingModelToDTOConverter::toDTO
                 )
         );
     }
@@ -90,10 +92,10 @@ public class HousingController {
     @GetMapping("/{rentalObjectId}")
     public ResponseEntity<HousingDTO> getHousingById(@PathVariable(name = "rentalObjectId") String rentalObjectId) {
         try {
-            HousingDTO housingDTO = HousingDTO.createFromModel(housingService.getHousingByRentalObjectId(rentalObjectId));
+            HousingDTO housingDTO = HousingModelToDTOConverter.toDTO(housingService.getHousingByRentalObjectId(rentalObjectId));
             return ResponseEntity.ok(housingDTO);
         } catch (ObjectNotFoundException e) {
-            return ResponseEntity.notFound().build();
+            throw new NotFoundException(e.getMessage());
         }
     }
 }
