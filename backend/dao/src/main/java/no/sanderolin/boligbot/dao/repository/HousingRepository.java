@@ -17,21 +17,41 @@ public interface HousingRepository extends JpaRepository<HousingModel, String>, 
 
     List<HousingModel> findAllByRentalObjectIdIn(Collection<String> rentalObjectIds);
 
-    @Modifying
-    @Query("UPDATE HousingModel h SET h.isAvailable = :isAvailable WHERE h.rentalObjectId IN :rentalObjectIds")
-    int bulkUpdateAvailability(@Param("rentalObjectIds") List<String> rentalObjectIds, @Param("isAvailable") boolean isAvailable);
-
-    @Modifying
-    @Query("""
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
         UPDATE HousingModel h
-        SET h.isAvailable = false
+        SET h.isAvailable = true
+        WHERE h.rentalObjectId IN :rentalObjectIds
+          AND h.isAvailable <> true
+        """
+    )
+    int markAvailableIfInIds(@Param("rentalObjectIds") List<String> rentalObjectIds);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(
+        """
+        UPDATE HousingModel h
+        SET h.isAvailable = false,
+        h.availableFromDate = null
         WHERE h.isAvailable = true
-        AND h.rentalObjectId NOT IN :rentalObjectIds
-        """)
-    int markUnavailableNotInIds(@Param("rentalObjectIds") List<String> rentalObjectIds);
+          AND h.rentalObjectId NOT IN :rentalObjectIds
+        """
+    )
+    int markUnavailableIfNotInIds(@Param("rentalObjectIds") List<String> rentalObjectIds);
 
     @Modifying
-    @Query("UPDATE HousingModel h SET h.availableFromDate = :availableFromDate WHERE h.rentalObjectId = :rentalObjectId")
+    @Query(
+        """
+        UPDATE HousingModel h
+        SET h.availableFromDate = :availableFromDate
+        WHERE h.rentalObjectId = :rentalObjectId
+          AND (
+               h.availableFromDate IS NULL
+            OR h.availableFromDate <> :availableFromDate
+          )
+        """
+    )
     int updateAvailableFromDate(@Param("rentalObjectId") String rentalObjectId,
                                 @Param("availableFromDate") LocalDate availableFromDate);
 

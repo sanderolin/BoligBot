@@ -5,10 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import no.sanderolin.boligbot.dao.model.HousingModel;
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
-import no.sanderolin.boligbot.housingimport.util.GraphQLHousingMapper;
-import no.sanderolin.boligbot.housingimport.util.SitGraphQLClient;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +13,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -25,41 +22,52 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class HousingCatalogImportService {
 
-    private final SitGraphQLClient sitGraphQLClient;
-    private final GraphQLHousingMapper graphQLHousingMapper;
+    private final HousingCatalogFetcher catalogFetcher;
     private final HousingRepository housingRepository;
+    private final AtomicBoolean running = new AtomicBoolean(false);
 
     /**
      * Task to import all housing items from the SIT GraphQL API.
      */
     @Transactional
     public void runImport() {
+        if (!running.compareAndSet(false, true)) {
+            log.warn("Catalog import skipped because a previous run is still in progress");
+            return;
+        }
         log.info("Starting housing import process");
         Instant taskStartTime = Instant.now();
         try {
-            List<HousingModel> importedHousingEntities = fetchHousingEntitiesFromGraphQL();
+            List<HousingModel> importedHousingEntities = catalogFetcher.fetchHousingEntitiesFromGraphQL();
 
             if (importedHousingEntities.isEmpty()) {
-                log.info("No housing items found to import");
+                long durationMs = Duration.between(taskStartTime, Instant.now()).toMillis();
+                log.info("No housing items found to import [durationMs={}]", durationMs);
                 return;
             }
 
             log.info("Fetched {} housing items from API", importedHousingEntities.size());
-            processHousingEntities(importedHousingEntities, taskStartTime);
+            CatalogImportResult result = processHousingEntities(importedHousingEntities, taskStartTime);
 
+            long durationMs = Duration.between(taskStartTime, Instant.now()).toMillis();
+            log.info(
+                    "Catalog import finished [durationMs={}, fetched={}, created={}, updated={}]",
+                    durationMs, result.fetched(), result.created(), result.updated()
+            );
         } catch (HousingImportException e) {
-            log.error("Failed to import housing data: {}", e.getMessage(), e);
+            long durationMs = Duration.between(taskStartTime, Instant.now()).toMillis();
+            log.error("Catalog import failed [durationMs={}]: {}", durationMs, e.getMessage(), e);
             throw e;
         } catch (Exception e) {
-            log.error("Unexpected error during housing import", e);
+            long durationMs = Duration.between(taskStartTime, Instant.now()).toMillis();
+            log.error("Catalog import failed unexpectedly [durationMs={}]", durationMs, e);
             throw new HousingImportException("Unexpected error during housing import", e);
         } finally {
-            long durationMs = Duration.between(taskStartTime, Instant.now()).toMillis();
-            log.info("Housing import completed in {} ms", durationMs);
+            running.set(false);
         }
     }
 
-    private void processHousingEntities(List<HousingModel> importedHousingEntities, Instant taskStartTime) {
+    private CatalogImportResult processHousingEntities(List<HousingModel> importedHousingEntities, Instant taskStartTime) {
         List<String> idsOfImportedHousingEntities = importedHousingEntities.stream()
                 .map(HousingModel::getRentalObjectId)
                 .toList();
@@ -79,21 +87,18 @@ public class HousingCatalogImportService {
                 incoming.setLastModifiedAt(taskStartTime);
                 incoming.setLastImportedAt(taskStartTime);
                 toCreate.add(incoming);
-            } else {
-                existing.setLastImportedAt(taskStartTime);
-                if (!existing.dataEquals(incoming)) {
-                    updateFields(existing, incoming);
-                    existing.setLastModifiedAt(taskStartTime);
-                    toUpdate.add(existing);
-                } else {
-                    toUpdate.add(existing);
-                }
+                continue;
             }
+            existing.setLastImportedAt(taskStartTime);
+            if (!existing.catalogEquals(incoming)) {
+                updateFields(existing, incoming);
+                existing.setLastModifiedAt(taskStartTime);
+            }
+            toUpdate.add(existing);
         }
         if (!toCreate.isEmpty()) housingRepository.saveAll(toCreate);
         if (!toUpdate.isEmpty()) housingRepository.saveAll(toUpdate);
-        log.info("Saved {} new and {} updated housing items", toCreate.size(), toUpdate.size());
-        log.info("Successfully saved {} total housing items", importedHousingEntities.size());
+        return new CatalogImportResult(importedHousingEntities.size(), toCreate.size(), toUpdate.size());
     }
 
     private void updateFields(HousingModel existing, HousingModel incoming) {
@@ -106,41 +111,5 @@ public class HousingCatalogImportService {
         existing.setPricePerMonth(incoming.getPricePerMonth());
     }
 
-
-    @Retryable(
-            retryFor = {HousingImportException.class},
-            backoff = @Backoff(delay = 1000, multiplier = 2)
-    )
-    private List<HousingModel> fetchHousingEntitiesFromGraphQL() {
-        String getHousingEntitiesQuery = """
-            {
-              "operationName": "GetHousingItems",
-              "variables": {
-                "input": {
-                  "category": {
-                    "displayName": {
-                      "no": {
-                        "neq": "Parkering"
-                      }
-                    }
-                  }
-                },
-                "sort": [
-                  { "_id": "ASC" }
-                ],
-                "limit": 0,
-                "offset": 0
-              },
-              "query": "query GetHousingItems($input: Sanity_EnhetFilter, $limit: Int, $offset: Int) { sanity_allEnhet(where: $input, limit: $limit, offset: $offset) { rentalObjectId name building { address } area price category { displayName { no en } } studentby { name studiested { name } } kollektiv { name } } }"
-            }
-            """;
-
-        try {
-            String response = sitGraphQLClient.executeGraphQLQuery(getHousingEntitiesQuery);
-            return graphQLHousingMapper.mapHousingEntities(response);
-        } catch (Exception e) {
-            log.error("Failed to fetch housing entities from GraphQL API", e);
-            throw new HousingImportException("Failed to fetch housing data from external API", e);
-        }
-    }
+    private record CatalogImportResult(int fetched, int created, int updated) { }
 }

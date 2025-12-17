@@ -48,6 +48,18 @@
             <column name="available_from_date" type="date">
                 <constraints nullable="true"/>
             </column>
+
+            <column name="created_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="last_modified_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+
+            <column name="last_imported_at" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
 
         <rollback>

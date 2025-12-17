@@ -2,6 +2,7 @@ package no.sanderolin.boligbot.housingimport.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import no.sanderolin.boligbot.housingimport.service.HousingCatalogImportService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,6 +25,10 @@ public class HousingCatalogImportScheduler {
      */
     @Scheduled(cron = "${housing.catalog.import.cron}")
     public void scheduleHousingImport() {
-        housingCatalogImportService.runImport();
+        try {
+            housingCatalogImportService.runImport();
+        } catch (HousingImportException e) {
+            log.warn("Scheduled catalog import failed");
+        }
     }
 }

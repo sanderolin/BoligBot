@@ -3,8 +3,6 @@ package no.sanderolin.boligbot.housingimport.service;
 import no.sanderolin.boligbot.dao.model.HousingModel;
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
-import no.sanderolin.boligbot.housingimport.util.GraphQLHousingMapper;
-import no.sanderolin.boligbot.housingimport.util.SitGraphQLClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,151 +23,173 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class HousingCatalogImportServiceTest {
 
-    @Mock
-    private SitGraphQLClient sitGraphQLClient;
-
-    @Mock
-    private GraphQLHousingMapper graphQLHousingMapper;
-
-    @Mock
-    private HousingRepository housingRepository;
-
-    @InjectMocks
-    private HousingCatalogImportService importTask;
+    @Mock private HousingCatalogFetcher catalogFetcher;
+    @Mock private HousingRepository housingRepository;
+    @InjectMocks private HousingCatalogImportService importTask;
 
     private HousingModel existingHousing;
     private HousingModel newHousing;
     private HousingModel updatedHousing;
-    private final String mockGraphQLResponse = "response";
-    private final Instant timestamp = Instant.now();
+    private Instant timestamp;
 
     @BeforeEach
     void setUp() {
-        existingHousing = createHousingModel("EXISTING-001", "Old Name", "Old Address",
-                "Old Type", "Old City", "Old District", BigDecimal.valueOf(10.0), 1000);
+        timestamp = Instant.now();
+        existingHousing = createHousingModel(
+                "EXISTING-001",
+                "Old Name",
+                "Old Address",
+                "Old Type",
+                "Old City",
+                "Old District",
+                BigDecimal.valueOf(10.0),
+                1000
+        );
         existingHousing.setCreatedAt(timestamp.minus(1, ChronoUnit.DAYS));
         existingHousing.setLastModifiedAt(timestamp.minus(1, ChronoUnit.DAYS));
         existingHousing.setLastImportedAt(timestamp.minus(1, ChronoUnit.DAYS));
 
-        newHousing = createHousingModel("NEW-001", "New Housing", "New Address",
-                "New Type", "New City", "New District", BigDecimal.valueOf(15.0), 2000);
+        newHousing = createHousingModel(
+                "NEW-001",
+                "New Housing",
+                "New Address",
+                "New Type",
+                "New City",
+                "New District",
+                BigDecimal.valueOf(15.0),
+                2000
+        );
 
-        updatedHousing = createHousingModel(existingHousing.getRentalObjectId(), "Updated Name", "Updated Address",
-                "Updated Type", "Updated City", "Updated District", BigDecimal.valueOf(12.0), 1500);
+        updatedHousing = createHousingModel(
+                existingHousing.getRentalObjectId(),
+                "Updated Name",
+                "Updated Address",
+                "Updated Type",
+                "Updated City",
+                "Updated District",
+                BigDecimal.valueOf(12.0),
+                1500
+        );
     }
 
     @Test
     void runImport_ShouldCreateNewRecords() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingEntities(eq(mockGraphQLResponse))).thenReturn(List.of(newHousing));
-        when(housingRepository.findAllByRentalObjectIdIn(eq(List.of(newHousing.getRentalObjectId())))).thenReturn(Collections.emptyList());
-        when(housingRepository.saveAll(any())).thenReturn(List.of(newHousing));
+        when(catalogFetcher.fetchHousingEntitiesFromGraphQL()).thenReturn(List.of(newHousing));
+
+        when(housingRepository.findAllByRentalObjectIdIn(eq(List.of(newHousing.getRentalObjectId()))))
+                .thenReturn(Collections.emptyList());
+        when(housingRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
         importTask.runImport();
 
-        verify(sitGraphQLClient).executeGraphQLQuery(anyString());
-        verify(graphQLHousingMapper).mapHousingEntities(mockGraphQLResponse);
+        verify(catalogFetcher).fetchHousingEntitiesFromGraphQL();
         verify(housingRepository).findAllByRentalObjectIdIn(List.of(newHousing.getRentalObjectId()));
-        verify(housingRepository).saveAll(argThat(list -> {
-            List<HousingModel> models = (List<HousingModel>) list;
-            return models.size() == 1 &&
-                   models.getFirst().getRentalObjectId().equals(newHousing.getRentalObjectId()) &&
-                   models.getFirst().getCreatedAt() != null &&
-                   models.getFirst().getLastModifiedAt() != null &&
-                   models.getFirst().getLastImportedAt() != null;
+        verify(housingRepository).saveAll(argThat(arg -> {
+            List<HousingModel> models = (List<HousingModel>) arg;
+            HousingModel model = models.getFirst();
+            return models.size() == 1
+                    && model.getRentalObjectId().equals(newHousing.getRentalObjectId())
+                    && model.getCreatedAt() != null
+                    && model.getLastModifiedAt() != null
+                    && model.getLastImportedAt() != null
+                    && model.getCreatedAt().isAfter(timestamp)
+                    && model.getLastModifiedAt().isAfter(timestamp)
+                    && model.getLastImportedAt().isAfter(timestamp);
         }));
     }
 
 
     @Test
     void runImport_WithExistingUnchangedHousing_ShouldOnlyUpdateImportTime() {
-        HousingModel unchangedHousing = createHousingModel(existingHousing.getRentalObjectId(), existingHousing.getName(),
-                existingHousing.getAddress(), existingHousing.getHousingType(), existingHousing.getCity(),
-                existingHousing.getDistrict(), existingHousing.getAreaSqm(), existingHousing.getPricePerMonth());
+        HousingModel unchangedHousing = createHousingModel(
+                existingHousing.getRentalObjectId(),
+                existingHousing.getName(),
+                existingHousing.getAddress(),
+                existingHousing.getHousingType(),
+                existingHousing.getCity(),
+                existingHousing.getDistrict(),
+                existingHousing.getAreaSqm(),
+                existingHousing.getPricePerMonth()
+        );
 
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingEntities(eq(mockGraphQLResponse))).thenReturn(List.of(unchangedHousing));
+        when(catalogFetcher.fetchHousingEntitiesFromGraphQL()).thenReturn(List.of(unchangedHousing));
         when(housingRepository.findAllByRentalObjectIdIn(eq(List.of(unchangedHousing.getRentalObjectId())))).thenReturn(List.of(existingHousing));
-        when(housingRepository.saveAll(any())).thenReturn(List.of(existingHousing));
+        when(housingRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
         importTask.runImport();
 
         verify(housingRepository).saveAll(argThat(list -> {
             List<HousingModel> models = (List<HousingModel>) list;
             HousingModel unchangedHousingModel = models.getFirst();
-            return models.size() == 1 &&
-                   unchangedHousingModel.getLastModifiedAt().equals(timestamp.minus(1, ChronoUnit.DAYS)) &&
-                   unchangedHousingModel.getLastImportedAt().isAfter(timestamp);
+            return models.size() == 1
+                    && unchangedHousingModel.getName().equals(existingHousing.getName())
+                    && unchangedHousingModel.getAddress().equals(existingHousing.getAddress())
+                    && unchangedHousingModel.getLastModifiedAt().equals(timestamp.minus(1, ChronoUnit.DAYS))
+                    && unchangedHousingModel.getLastImportedAt().isAfter(timestamp);
         }));
     }
 
     @Test
     void runImport_ShouldUpdateFields() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingEntities(eq(mockGraphQLResponse))).thenReturn(List.of(updatedHousing));
+        when(catalogFetcher.fetchHousingEntitiesFromGraphQL()).thenReturn(List.of(updatedHousing));
         when(housingRepository.findAllByRentalObjectIdIn(eq(List.of(updatedHousing.getRentalObjectId())))).thenReturn(List.of(existingHousing));
-        when(housingRepository.saveAll(any())).thenReturn(List.of(updatedHousing));
+        when(housingRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
         importTask.runImport();
 
         verify(housingRepository).saveAll(argThat(list -> {
             List<HousingModel> models = (List<HousingModel>) list;
             HousingModel updated = models.getFirst();
-            return models.size() == 1 &&
-                   updated.getName().equals(updatedHousing.getName()) &&
-                   updated.getAddress().equals(updatedHousing.getAddress()) &&
-                   updated.getHousingType().equals(updatedHousing.getHousingType()) &&
-                   updated.getCity().equals(updatedHousing.getCity()) &&
-                   updated.getDistrict().equals(updatedHousing.getDistrict()) &&
-                   updated.getAreaSqm().equals(updatedHousing.getAreaSqm()) &&
-                   updated.getPricePerMonth() == updatedHousing.getPricePerMonth() &&
-                   updated.getCreatedAt().equals(timestamp.minus(1, ChronoUnit.DAYS)) &&
-                   updated.getLastModifiedAt().isAfter(timestamp) &&
-                   updated.getLastImportedAt().isAfter(timestamp);
+            return models.size() == 1
+                    && updated.getName().equals(updatedHousing.getName())
+                    && updated.getAddress().equals(updatedHousing.getAddress())
+                    && updated.getHousingType().equals(updatedHousing.getHousingType())
+                    && updated.getCity().equals(updatedHousing.getCity())
+                    && updated.getDistrict().equals(updatedHousing.getDistrict())
+                    && updated.getAreaSqm().equals(updatedHousing.getAreaSqm())
+                    && updated.getPricePerMonth() == updatedHousing.getPricePerMonth()
+                    && updated.getCreatedAt().equals(timestamp.minus(1, ChronoUnit.DAYS))
+                    && updated.getLastModifiedAt().isAfter(timestamp)
+                    && updated.getLastImportedAt().isAfter(timestamp);
         }));
     }
 
     @Test
     void runImport_WithEmptyResponse_ShouldExitEarly() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingEntities(mockGraphQLResponse)).thenReturn(Collections.emptyList());
-
+        when(catalogFetcher.fetchHousingEntitiesFromGraphQL()).thenReturn(Collections.emptyList());
         importTask.runImport();
 
-        verify(sitGraphQLClient).executeGraphQLQuery(anyString());
-        verify(graphQLHousingMapper).mapHousingEntities(mockGraphQLResponse);
+        verify(catalogFetcher).fetchHousingEntitiesFromGraphQL();
         verifyNoInteractions(housingRepository);
     }
 
     @Test
     void runImport_WithHousingImportException_ShouldPropagateException() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString()))
+        when(catalogFetcher.fetchHousingEntitiesFromGraphQL())
                 .thenThrow(new HousingImportException("exception"));
 
         assertThatThrownBy(() -> importTask.runImport())
                 .isInstanceOf(HousingImportException.class)
-                .hasMessage("Failed to fetch housing data from external API");
+                .hasMessage("exception");
 
-        verifyNoInteractions(graphQLHousingMapper);
         verifyNoInteractions(housingRepository);
     }
 
     @Test
-    void runImport_WithGraphQLMapperException_ShouldPropagateException() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingEntities(mockGraphQLResponse))
-                .thenThrow(new HousingImportException("exception"));
+    void runImport_WithUnexpectedException_ShouldWrapException() {
+        when(catalogFetcher.fetchHousingEntitiesFromGraphQL())
+                .thenThrow(new RuntimeException("boom"));
 
         assertThatThrownBy(() -> importTask.runImport())
                 .isInstanceOf(HousingImportException.class)
-                .hasMessage("Failed to fetch housing data from external API");
+                .hasMessage("Unexpected error during housing import")
+                .hasCauseInstanceOf(RuntimeException.class);
 
         verifyNoInteractions(housingRepository);
     }
 
     @Test
     void runImport_WithDatabaseException_ShouldWrapException() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingEntities(mockGraphQLResponse)).thenReturn(List.of(newHousing));
+        when(catalogFetcher.fetchHousingEntitiesFromGraphQL()).thenReturn(List.of(newHousing));
         when(housingRepository.findAllByRentalObjectIdIn(any()))
                 .thenThrow(new RuntimeException("Database connection error"));
 

@@ -104,7 +104,7 @@ class SitGraphQLClientTest {
 
         assertThatThrownBy(() -> sitGraphQLClient.executeGraphQLQuery(query))
                 .isInstanceOf(HousingImportException.class)
-                .hasMessage("Failed to communicate with SIT GraphQL API")
+                .hasMessage("SIT GraphQL call failed")
                 .cause()
                 .isInstanceOf(RestClientException.class);
     }

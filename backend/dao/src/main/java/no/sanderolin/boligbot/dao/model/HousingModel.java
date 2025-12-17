@@ -51,7 +51,7 @@ public class HousingModel extends ImportableEntity{
      * Compares only the business data fields (excludes audit fields like timestamps).
      * Used to determine if an entity has changed during import.
      */
-    public boolean dataEquals(HousingModel other) {
+    public boolean catalogEquals(HousingModel other) {
         if (other == null || getClass() != other.getClass()) return false;
 
         return Objects.equals(this.name, other.name)
@@ -60,9 +60,7 @@ public class HousingModel extends ImportableEntity{
                && Objects.equals(this.city, other.city)
                && Objects.equals(this.district, other.district)
                && areaSqmEquals(this.areaSqm, other.areaSqm)
-               && this.pricePerMonth == other.pricePerMonth
-               && this.isAvailable == other.isAvailable
-               && Objects.equals(this.availableFromDate, other.availableFromDate);
+               && this.pricePerMonth == other.pricePerMonth;
     }
 
     private boolean areaSqmEquals(BigDecimal a, BigDecimal b) {

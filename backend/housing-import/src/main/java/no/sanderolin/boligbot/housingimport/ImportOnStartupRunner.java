@@ -2,6 +2,7 @@ package no.sanderolin.boligbot.housingimport;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import no.sanderolin.boligbot.housingimport.service.HousingAvailabilityImportService;
 import no.sanderolin.boligbot.housingimport.service.HousingCatalogImportService;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,10 +18,10 @@ public class ImportOnStartupRunner {
     private final HousingCatalogImportService catalogService;
     private final HousingAvailabilityImportService availabilityService;
 
-    @Value("${housing.catalog.import.run-on-startup:true}")
+    @Value("${housing.catalog.import.run-on-startup:false}")
     private boolean runCatalogOnStartup;
 
-    @Value("${housing.availability.import.run-on-startup:true}")
+    @Value("${housing.availability.import.run-on-startup:false}")
     private boolean runAvailabilityOnStartup;
 
     @Bean
@@ -30,17 +31,25 @@ public class ImportOnStartupRunner {
                 log.info("Startup: catalog import disabled → availability import skipped.");
                 return;
             }
+            log.info("Startup: running catalog import");
+            try {
+                catalogService.runImport();
+                log.info("Startup: catalog import done.");
+            } catch (HousingImportException e) {
+                log.warn("Startup: catalog import failed");
+                return;
+            }
 
-            log.info("Startup: running catalog import…");
-            catalogService.runImport();
-            log.info("Startup: catalog import done.");
-
-            if (runAvailabilityOnStartup) {
-                log.info("Startup: running availability import (after catalog)…");
+            if (!runAvailabilityOnStartup) {
+                log.info("Startup: availability import disabled.");
+                return;
+            }
+            log.info("Startup: running availability import (after catalog)…");
+            try {
                 availabilityService.runImport();
                 log.info("Startup: availability import done.");
-            } else {
-                log.info("Startup: availability import disabled.");
+            } catch (HousingImportException e) {
+                log.warn("Startup: availability import failed.");
             }
         };
     }

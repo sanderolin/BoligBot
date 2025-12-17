@@ -3,8 +3,6 @@ package no.sanderolin.boligbot.housingimport.service;
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
 import no.sanderolin.boligbot.housingimport.dto.HousingAvailabilityDTO;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
-import no.sanderolin.boligbot.housingimport.util.GraphQLHousingMapper;
-import no.sanderolin.boligbot.housingimport.util.SitGraphQLClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,12 +21,10 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class HousingAvailabilityImportServiceTest {
 
-    @Mock private SitGraphQLClient sitGraphQLClient;
-    @Mock private GraphQLHousingMapper graphQLHousingMapper;
+    @Mock private HousingAvailabilityFetcher availabilityFetcher;
     @Mock private HousingRepository housingRepository;
     @InjectMocks private HousingAvailabilityImportService importTask;
 
-    private final String mockGraphQLResponse = "graphql_response";
     private List<HousingAvailabilityDTO> availableHousings;
     private List<String> availableHousingIds;
 
@@ -41,112 +37,109 @@ class HousingAvailabilityImportServiceTest {
 
     @Test
     void runImport_ShouldUpdateAvailability() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingAvailability(mockGraphQLResponse)).thenReturn(availableHousings);
-        when(housingRepository.bulkUpdateAvailability(availableHousingIds, true)).thenReturn(3);
-        when(housingRepository.markUnavailableNotInIds(availableHousingIds)).thenReturn(2);
+        when(availabilityFetcher.fetchAvailabilityFromGraphQL()).thenReturn(availableHousings);
+
+        when(housingRepository.markAvailableIfInIds(eq(availableHousingIds))).thenReturn(3);
+        when(housingRepository.markUnavailableIfNotInIds(eq(availableHousingIds))).thenReturn(2);
+        when(housingRepository.updateAvailableFromDate(eq("1"), any(LocalDate.class))).thenReturn(1);
 
         importTask.runImport();
 
-        verify(sitGraphQLClient).executeGraphQLQuery(anyString());
-        verify(graphQLHousingMapper).mapHousingAvailability(mockGraphQLResponse);
-        verify(housingRepository).bulkUpdateAvailability(availableHousingIds, true);
-        verify(housingRepository).markUnavailableNotInIds(availableHousingIds);
+        verify(housingRepository).count();
+        verify(availabilityFetcher).fetchAvailabilityFromGraphQL();
+        verify(housingRepository).markAvailableIfInIds(eq(availableHousingIds));
+        verify(housingRepository).markUnavailableIfNotInIds(eq(availableHousingIds));
+        verify(housingRepository).updateAvailableFromDate(eq("1"), any(LocalDate.class));
     }
 
     @Test
-    void runImport_WithEmptyResponse_ShouldExitEarly() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingAvailability(mockGraphQLResponse)).thenReturn(Collections.emptyList());
-
-        importTask.runImport();
-
-        verify(sitGraphQLClient).executeGraphQLQuery(anyString());
-        verify(graphQLHousingMapper).mapHousingAvailability(mockGraphQLResponse);
-        verify(housingRepository, never()).bulkUpdateAvailability(any(), anyBoolean());
-        verify(housingRepository, never()).markUnavailableNotInIds(any());
-    }
-
-    @Test
-    void runImport_WithGraphQLClientException_ShouldPropagateAsHousingImportException() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString()))
-                .thenThrow(new RuntimeException("GraphQL connection error"));
-
-        assertThatThrownBy(() -> importTask.runImport())
-                .isInstanceOf(HousingImportException.class)
-                .hasMessage("Failed to fetch availability from GraphQL API")
-                .hasCauseInstanceOf(RuntimeException.class);
-
-        verifyNoInteractions(graphQLHousingMapper);
-        verify(housingRepository, never()).bulkUpdateAvailability(any(), anyBoolean());
-        verify(housingRepository, never()).markUnavailableNotInIds(any());
-    }
-
-    @Test
-    void runImport_WithHousingImportException_ShouldPropagateException() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString()))
-                .thenThrow(new HousingImportException("API unavailable"));
-
-        assertThatThrownBy(() -> importTask.runImport())
-                .isInstanceOf(HousingImportException.class)
-                .hasMessage("Failed to fetch availability from GraphQL API");
-
-        verifyNoInteractions(graphQLHousingMapper);
-        verify(housingRepository, never()).bulkUpdateAvailability(any(), anyBoolean());
-        verify(housingRepository, never()).markUnavailableNotInIds(any());
-    }
-
-    @Test
-    void runImport_WithGraphQLMapperException_ShouldPropagateAsHousingImportException() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingAvailability(mockGraphQLResponse))
-                .thenThrow(new RuntimeException("Mapping error"));
-
-        assertThatThrownBy(() -> importTask.runImport())
-                .isInstanceOf(HousingImportException.class)
-                .hasMessage("Failed to fetch availability from GraphQL API")
-                .hasCauseInstanceOf(RuntimeException.class);
-
-        verify(housingRepository, never()).bulkUpdateAvailability(any(), anyBoolean());
-        verify(housingRepository, never()).markUnavailableNotInIds(any());
-    }
-
-    @Test
-    void runImport_WithRepositoryException_ShouldWrapAsUnexpectedException() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingAvailability(mockGraphQLResponse)).thenReturn(availableHousings);
-        when(housingRepository.bulkUpdateAvailability(any(), anyBoolean()))
-                .thenThrow(new RuntimeException("Database connection error"));
-
-        assertThatThrownBy(() -> importTask.runImport())
-                .isInstanceOf(HousingImportException.class)
-                .hasMessage("Unexpected error during availability import")
-                .hasCauseInstanceOf(RuntimeException.class);
-    }
-
-    @Test
-    void runImport_WithSecondRepositoryCallException_ShouldWrapAsUnexpectedException() {
-        when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockGraphQLResponse);
-        when(graphQLHousingMapper.mapHousingAvailability(mockGraphQLResponse)).thenReturn(availableHousings);
-        when(housingRepository.bulkUpdateAvailability(any(), anyBoolean())).thenReturn(3);
-        when(housingRepository.markUnavailableNotInIds(any()))
-                .thenThrow(new RuntimeException("Database error on second call"));
-
-        assertThatThrownBy(() -> importTask.runImport())
-                .isInstanceOf(HousingImportException.class)
-                .hasMessage("Unexpected error during availability import")
-                .hasCauseInstanceOf(RuntimeException.class);
-    }
-
-    @Test
-    void runImport_WithEmptyDatabase_ShouldExitImport() {
+    void runImport_WithEmptyDatabase_ShouldExitEarly() {
         when(housingRepository.count()).thenReturn(0L);
 
         importTask.runImport();
 
-        verifyNoInteractions(sitGraphQLClient);
-        verifyNoInteractions(graphQLHousingMapper);
-        verify(housingRepository, never()).bulkUpdateAvailability(any(), anyBoolean());
-        verify(housingRepository, never()).markUnavailableNotInIds(any());
+        verify(housingRepository).count();
+        verifyNoMoreInteractions(availabilityFetcher, housingRepository);
+    }
+
+    @Test
+    void runImport_WithEmptyResponse_ShouldExitEarly() {
+        when(availabilityFetcher.fetchAvailabilityFromGraphQL()).thenReturn(Collections.emptyList());
+        importTask.runImport();
+
+        verify(housingRepository).count();
+        verify(availabilityFetcher).fetchAvailabilityFromGraphQL();
+        verifyNoMoreInteractions(housingRepository);
+    }
+
+    @Test
+    void runImport_WhenFetcherThrowsHousingImportException_ShouldPropagate() {
+        when(availabilityFetcher.fetchAvailabilityFromGraphQL())
+                .thenThrow(new HousingImportException("API unavailable"));
+
+        assertThatThrownBy(() -> importTask.runImport())
+                .isInstanceOf(HousingImportException.class)
+                .hasMessage("API unavailable");
+
+        verify(housingRepository).count();
+        verify(availabilityFetcher).fetchAvailabilityFromGraphQL();
+        verifyNoMoreInteractions(housingRepository);
+    }
+
+    @Test
+    void runImport_WhenBulkUpdateAvailabilityTrueThrows_ShouldWrapAsUnexpectedException() {
+        when(availabilityFetcher.fetchAvailabilityFromGraphQL()).thenReturn(availableHousings);
+        when(housingRepository.markAvailableIfInIds(anyList()))
+                .thenThrow(new RuntimeException("DB error"));
+
+        assertThatThrownBy(() -> importTask.runImport())
+                .isInstanceOf(HousingImportException.class)
+                .hasMessage("Unexpected error during availability import")
+                .hasCauseInstanceOf(RuntimeException.class);
+
+        verify(housingRepository).count();
+        verify(availabilityFetcher).fetchAvailabilityFromGraphQL();
+        verify(housingRepository).markAvailableIfInIds(eq(availableHousingIds));
+        verifyNoMoreInteractions(housingRepository);
+    }
+
+    @Test
+    void runImport_WhenBulkUpdateAvailabilityFalseThrows_ShouldWrapAsUnexpectedException() {
+        when(availabilityFetcher.fetchAvailabilityFromGraphQL()).thenReturn(availableHousings);
+        when(housingRepository.markAvailableIfInIds(anyList())).thenReturn(1);
+        when(housingRepository.markUnavailableIfNotInIds(anyList()))
+                .thenThrow(new RuntimeException("DB error"));
+
+        assertThatThrownBy(() -> importTask.runImport())
+                .isInstanceOf(HousingImportException.class)
+                .hasMessage("Unexpected error during availability import")
+                .hasCauseInstanceOf(RuntimeException.class);
+
+        verify(housingRepository).count();
+        verify(availabilityFetcher).fetchAvailabilityFromGraphQL();
+        verify(housingRepository).markAvailableIfInIds(eq(availableHousingIds));
+        verify(housingRepository).markUnavailableIfNotInIds(eq(availableHousingIds));
+        verifyNoMoreInteractions(housingRepository);
+    }
+
+    @Test
+    void runImport_WhenUpdateAvailableFromDateThrows_ShouldWrapAsUnexpectedException() {
+        when(availabilityFetcher.fetchAvailabilityFromGraphQL()).thenReturn(availableHousings);
+        when(housingRepository.markAvailableIfInIds(anyList())).thenReturn(1);
+        when(housingRepository.markUnavailableIfNotInIds(anyList())).thenReturn(1);
+
+        when(housingRepository.updateAvailableFromDate(eq("1"), any()))
+                .thenThrow(new RuntimeException("DB error 3"));
+
+        assertThatThrownBy(() -> importTask.runImport())
+                .isInstanceOf(HousingImportException.class)
+                .hasMessage("Unexpected error during availability import")
+                .hasCauseInstanceOf(RuntimeException.class);
+
+        verify(housingRepository).count();
+        verify(availabilityFetcher).fetchAvailabilityFromGraphQL();
+        verify(housingRepository).markAvailableIfInIds(anyList());
+        verify(housingRepository).markUnavailableIfNotInIds(anyList());
+        verify(housingRepository).updateAvailableFromDate(eq("1"), any());
     }
 }
