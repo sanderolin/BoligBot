@@ -29,12 +29,12 @@ public class HousingService {
         );
 
         Specification<HousingModel> spec = Specification.allOf(
-                eqIgnoreCase("rentalObjectId", criteria.rentalObjectId()),
-                eqIgnoreCase("address", criteria.address()),
-                eqIgnoreCase("name", criteria.name()),
-                eqIgnoreCase("housingType", criteria.housingType()),
-                eqIgnoreCase("city", criteria.city()),
-                eqIgnoreCase("district", criteria.district()),
+                containsIgnoreCase("rentalObjectId", criteria.rentalObjectId()),
+                containsIgnoreCase("address", criteria.address()),
+                containsIgnoreCase("name", criteria.name()),
+                containsIgnoreCase("housingType", criteria.housingType()),
+                containsIgnoreCase("city", criteria.city()),
+                containsIgnoreCase("district", criteria.district()),
                 rangeComparable("pricePerMonth", criteria.minPricePerMonthOrNull(), criteria.maxPricePerMonthOrNull(), Integer.class),
                 rangeComparable("areaSqm", criteria.minAreaOrNull(), criteria.maxAreaOrNull(), BigDecimal.class)
         );
@@ -45,11 +45,10 @@ public class HousingService {
         return housingRepository.findById(id).orElseThrow(() -> new ObjectNotFoundException("Housing with id " + id + " not found", HousingModel.class));
     }
 
-    private Specification<HousingModel> eqIgnoreCase(String field, String value) {
+    private Specification<HousingModel> containsIgnoreCase(String field, String value) {
         if (value == null || value.isBlank()) return null;
-        String v = value.trim().toLowerCase();
-        return (root, q, cb)
-                -> cb.equal(cb.lower(root.get(field)), v);
+        String v = "%" + value.trim().toLowerCase() + "%";
+        return (root, q, cb) -> cb.like(cb.lower(root.get(field)), v);
     }
 
     private <T extends Comparable<? super T>> Specification<HousingModel> rangeComparable(
