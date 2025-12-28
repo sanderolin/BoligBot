@@ -1,9 +1,9 @@
-package no.sanderolin.boligbot.web.v1.housings.request;
+package no.sanderolin.boligbot.web.v1.housing.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
-import no.sanderolin.boligbot.service.housings.SortDirection;
-import no.sanderolin.boligbot.service.housings.HousingSortBy;
+import no.sanderolin.boligbot.service.housing.SortDirection;
+import no.sanderolin.boligbot.service.housing.HousingSortBy;
 
 import java.math.BigDecimal;
 

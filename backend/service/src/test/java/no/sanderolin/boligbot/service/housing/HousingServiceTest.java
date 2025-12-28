@@ -1,4 +1,4 @@
-package no.sanderolin.boligbot.service.housings;
+package no.sanderolin.boligbot.service.housing;
 
 import no.sanderolin.boligbot.dao.model.HousingModel;
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
@@ -27,11 +27,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class HousingServiceTest {
 
-    @Mock
-    private HousingRepository housingRepository;
-
-    @InjectMocks
-    private HousingService housingService;
+    @Mock private HousingRepository housingRepository;
+    @InjectMocks private HousingService housingService;
 
     private List<HousingModel> mockHousings;
 

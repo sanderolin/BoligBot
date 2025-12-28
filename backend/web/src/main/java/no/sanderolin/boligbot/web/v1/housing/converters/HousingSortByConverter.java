@@ -1,6 +1,6 @@
-package no.sanderolin.boligbot.web.v1.housings.converters;
+package no.sanderolin.boligbot.web.v1.housing.converters;
 
-import no.sanderolin.boligbot.service.housings.HousingSortBy;
+import no.sanderolin.boligbot.service.housing.HousingSortBy;
 import no.sanderolin.boligbot.web.v1.common.exception.BadRequestException;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.stereotype.Component;

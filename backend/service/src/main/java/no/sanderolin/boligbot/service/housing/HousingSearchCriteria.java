@@ -1,4 +1,4 @@
-package no.sanderolin.boligbot.service.housings;
+package no.sanderolin.boligbot.service.housing;
 
 import lombok.Builder;
 import org.springframework.data.domain.Sort;

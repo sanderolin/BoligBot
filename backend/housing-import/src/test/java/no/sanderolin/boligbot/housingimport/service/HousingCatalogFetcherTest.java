@@ -1,6 +1,6 @@
 package no.sanderolin.boligbot.housingimport.service;
 
-import no.sanderolin.boligbot.dao.model.HousingModel;
+import no.sanderolin.boligbot.housingimport.dto.HousingDTO;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import no.sanderolin.boligbot.housingimport.util.GraphQLHousingMapper;
 import no.sanderolin.boligbot.housingimport.util.SitGraphQLClient;
@@ -10,6 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,14 +26,19 @@ class HousingCatalogFetcherTest {
     @InjectMocks private HousingCatalogFetcher fetcher;
 
     @Test
-    void fetchHousingEntitiesFromGraphQL_ShouldCallClientAndMapResponse() {
+    void fetchHousingsFromGraphQL_ShouldCallClientAndMapResponse() {
         String mockResponse = "{\"data\":{\"sanity_allEnhet\":[]}}";
-        List<HousingModel> mapped = List.of(new HousingModel(), new HousingModel());
+        List<HousingDTO> mapped = List.of(
+                new HousingDTO("1", "2", "3", "4",
+                "5", "6", new BigDecimal(7), 8),
+                new HousingDTO("9", "10", "11", "12",
+                        "13", "14", new BigDecimal(15), 16)
+                );
 
         when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockResponse);
         when(graphQLHousingMapper.mapHousingEntities(mockResponse)).thenReturn(mapped);
 
-        List<HousingModel> result = fetcher.fetchHousingEntitiesFromGraphQL();
+        List<HousingDTO> result = fetcher.fetchHousingsFromGraphQL();
 
         assertThat(result).isSameAs(mapped);
         verify(sitGraphQLClient).executeGraphQLQuery(anyString());
@@ -45,7 +51,7 @@ class HousingCatalogFetcherTest {
         when(sitGraphQLClient.executeGraphQLQuery(anyString()))
                 .thenThrow(new HousingImportException("network fail"));
 
-        assertThatThrownBy(() -> fetcher.fetchHousingEntitiesFromGraphQL())
+        assertThatThrownBy(() -> fetcher.fetchHousingsFromGraphQL())
                 .isInstanceOf(HousingImportException.class)
                 .hasMessage("network fail");
 
@@ -54,11 +60,11 @@ class HousingCatalogFetcherTest {
     }
 
     @Test
-    void fetchHousingEntitiesFromGraphQL_WhenClientThrowsIllegalArgumentException_ShouldWrap() {
+    void fetchHousingsFromGraphQL_WhenClientThrowsIllegalArgumentException_ShouldWrap() {
         when(sitGraphQLClient.executeGraphQLQuery(anyString()))
                 .thenThrow(new IllegalArgumentException("bad query"));
 
-        assertThatThrownBy(() -> fetcher.fetchHousingEntitiesFromGraphQL())
+        assertThatThrownBy(() -> fetcher.fetchHousingsFromGraphQL())
                 .isInstanceOf(HousingImportException.class)
                 .hasMessage("Failed to fetch housing data from external API")
                 .hasCauseInstanceOf(IllegalArgumentException.class);
@@ -74,7 +80,7 @@ class HousingCatalogFetcherTest {
         when(graphQLHousingMapper.mapHousingEntities(mockResponse))
                 .thenThrow(new HousingImportException("mapping fail"));
 
-        assertThatThrownBy(() -> fetcher.fetchHousingEntitiesFromGraphQL())
+        assertThatThrownBy(() -> fetcher.fetchHousingsFromGraphQL())
                 .isInstanceOf(HousingImportException.class)
                 .hasMessage("mapping fail");
 
@@ -83,13 +89,13 @@ class HousingCatalogFetcherTest {
     }
 
     @Test
-    void fetchHousingEntitiesFromGraphQL_WhenMapperThrowsIllegalArgumentException_ShouldWrap() {
+    void fetchHousingsFromGraphQL_WhenMapperThrowsIllegalArgumentException_ShouldWrap() {
         String mockResponse = "{\"data\":{\"sanity_allEnhet\":[]}}";
         when(sitGraphQLClient.executeGraphQLQuery(anyString())).thenReturn(mockResponse);
         when(graphQLHousingMapper.mapHousingEntities(mockResponse))
                 .thenThrow(new IllegalArgumentException("bad json"));
 
-        assertThatThrownBy(() -> fetcher.fetchHousingEntitiesFromGraphQL())
+        assertThatThrownBy(() -> fetcher.fetchHousingsFromGraphQL())
                 .isInstanceOf(HousingImportException.class)
                 .hasMessage("Failed to fetch housing data from external API")
                 .hasCauseInstanceOf(IllegalArgumentException.class);

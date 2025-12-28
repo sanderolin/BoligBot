@@ -1,8 +1,9 @@
-package no.sanderolin.boligbot.service.housings;
+package no.sanderolin.boligbot.service.housing;
 
 import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.From;
+import jakarta.persistence.criteria.Path;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import no.sanderolin.boligbot.dao.model.HousingModel;
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
 import org.hibernate.ObjectNotFoundException;
@@ -14,7 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
-@Slf4j
 @Service
 @RequiredArgsConstructor
 public class HousingService {
@@ -32,9 +32,9 @@ public class HousingService {
                 containsIgnoreCase("rentalObjectId", criteria.rentalObjectId()),
                 containsIgnoreCase("address", criteria.address()),
                 containsIgnoreCase("name", criteria.name()),
-                containsIgnoreCase("housingType", criteria.housingType()),
-                containsIgnoreCase("city", criteria.city()),
-                containsIgnoreCase("district", criteria.district()),
+                containsIgnoreCaseJoin(criteria.housingType(), "housingType", "name"),
+                containsIgnoreCaseJoin(criteria.district(), "district", "name"),
+                containsIgnoreCaseJoin(criteria.city(), "district", "city", "name"),
                 rangeComparable("pricePerMonth", criteria.minPricePerMonthOrNull(), criteria.maxPricePerMonthOrNull(), Integer.class),
                 rangeComparable("areaSqm", criteria.minAreaOrNull(), criteria.maxAreaOrNull(), BigDecimal.class)
         );
@@ -50,6 +50,22 @@ public class HousingService {
         String v = "%" + value.trim().toLowerCase() + "%";
         return (root, q, cb) -> cb.like(cb.lower(root.get(field)), v);
     }
+
+    private Specification<HousingModel> containsIgnoreCaseJoin(String value, String... path) {
+        if (value == null || value.isBlank()) return null;
+        String v = "%" + value.trim().toLowerCase() + "%";
+
+        return (root, q, cb) -> {
+            From<?, ?> from = root; // Root implements From
+            for (int i = 0; i < path.length - 1; i++) {
+                from = from.join(path[i]);
+            }
+            String last = path[path.length - 1];
+            Path<String> p = from.get(last);
+            return cb.like(cb.lower(p), v);
+        };
+    }
+
 
     private <T extends Comparable<? super T>> Specification<HousingModel> rangeComparable(
             String field, T min, T max, Class<T> type) {

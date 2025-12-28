@@ -2,8 +2,15 @@ package no.sanderolin.boligbot.apitests.housings;
 
 import no.sanderolin.boligbot.apitests.AbstractAPITest;
 import no.sanderolin.boligbot.app.BackendApplication;
+import no.sanderolin.boligbot.dao.model.CityModel;
+import no.sanderolin.boligbot.dao.model.DistrictModel;
 import no.sanderolin.boligbot.dao.model.HousingModel;
+import no.sanderolin.boligbot.dao.model.HousingTypeModel;
+import no.sanderolin.boligbot.dao.repository.CityRepository;
+import no.sanderolin.boligbot.dao.repository.DistrictRepository;
 import no.sanderolin.boligbot.dao.repository.HousingRepository;
+import no.sanderolin.boligbot.dao.repository.HousingTypeRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,37 +39,61 @@ public class HousingAPITest extends AbstractAPITest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private HousingRepository housingRepository;
+    @Autowired private CityRepository cityRepository;
+    @Autowired private DistrictRepository districtRepository;
+    @Autowired private HousingTypeRepository housingTypeRepository;
     private List<HousingModel> seededHousingModels;
+    private static final Instant now = Instant.now();
 
     @BeforeEach
     void setUp() {
-        housingRepository.deleteAll();
+        CityModel trondheim = createCityModel("Trondheim");
+        CityModel gjøvik = createCityModel("Gjøvik");
+        CityModel ålesund = createCityModel("Ålesund");
+
+        DistrictModel moholt = createDistrictModel("Moholt", trondheim);
+        DistrictModel sentrum = createDistrictModel("Sentrum", gjøvik);
+        DistrictModel sørnesvågen = createDistrictModel("Sørnesvågen", ålesund);
+        DistrictModel singsaker = createDistrictModel("Singsaker", trondheim);
+
+        HousingTypeModel oneRoomApartment = createHousingTypeModel("1-room apartment");
+        HousingTypeModel twoRoomApartment = createHousingTypeModel("2-room apartment");
+        HousingTypeModel dormInCollective = createHousingTypeModel("Dorm in collective");
+
         seededHousingModels = List.of(
                 createAndSaveTestHousingModel(
-                        "1", "Address 1", "Name 1", "1-room apartment",
-                        "Trondheim", "Moholt", BigDecimal.valueOf(19.9), 8200,
+                        "1", "Address 1", "Name 1", oneRoomApartment,
+                        moholt, BigDecimal.valueOf(19.9), 8200,
                         true, LocalDate.of(2025, 10, 1)
                 ),
                 createAndSaveTestHousingModel(
-                        "2", "Address 2", "Name 2", "2-room apartment",
-                        "Gjøvik", "Sentrum", BigDecimal.valueOf(36.6), 9358,
+                        "2", "Address 2", "Name 2", twoRoomApartment,
+                        sentrum, BigDecimal.valueOf(36.6), 9358,
                         true, LocalDate.of(2025, 10, 8)
                 ),
                 createAndSaveTestHousingModel(
-                        "3", "Address 3", "Name 3", "1-room apartment",
-                        "Trondheim", "Moholt", BigDecimal.valueOf(16), 8000,
+                        "3", "Address 3", "Name 3", oneRoomApartment,
+                        moholt, BigDecimal.valueOf(16), 8000,
                         false, null
                 ),
                 createAndSaveTestHousingModel(
-                        "4", "Address 4", "Name 4", "Dorm in collective",
-                        "Ålesund", "Sørnesvågen", BigDecimal.valueOf(10.6), 5501,
+                        "4", "Address 4", "Name 4", dormInCollective,
+                        sørnesvågen, BigDecimal.valueOf(10.6), 5501,
                         true, LocalDate.of(2025, 11, 1)
                 ),
                 createAndSaveTestHousingModel(
-                        "5", "Address 5", "Name 5", "Dorm in collective",
-                        "Trondheim", "Singsaker", BigDecimal.valueOf(10.2), 5233,
+                        "5", "Address 5", "Name 5", dormInCollective,
+                        singsaker, BigDecimal.valueOf(10.2), 5233,
                         false, null)
         );
+    }
+
+    @AfterEach
+    public void tearDown() {
+        housingRepository.deleteAll();
+        districtRepository.deleteAll();
+        cityRepository.deleteAll();
+        housingTypeRepository.deleteAll();
     }
 
     @Test
@@ -363,33 +394,60 @@ public class HousingAPITest extends AbstractAPITest {
                 .andExpect(jsonPath("$.hasNext").value(false));
     }
 
+
+    private CityModel createCityModel(String city) {
+        CityModel cityModel = new CityModel();
+        cityModel.setName(city);
+        cityModel.setCreatedAt(now);
+        cityModel.setLastModifiedAt(now);
+        cityModel.setLastImportedAt(now);
+        return cityRepository.save(cityModel);
+    }
+
+    private DistrictModel createDistrictModel(String district, CityModel cityModel) {
+        DistrictModel districtModel = new DistrictModel();
+        districtModel.setName(district);
+        districtModel.setCity(cityModel);
+        districtModel.setCreatedAt(now);
+        districtModel.setLastModifiedAt(now);
+        districtModel.setLastImportedAt(now);
+        return districtRepository.save(districtModel);
+    }
+
+    private HousingTypeModel createHousingTypeModel(String housingType) {
+        HousingTypeModel housingTypeModel = new HousingTypeModel();
+        housingTypeModel.setName(housingType);
+        housingTypeModel.setCreatedAt(now);
+        housingTypeModel.setLastModifiedAt(now);
+        housingTypeModel.setLastImportedAt(now);
+        return housingTypeRepository.save(housingTypeModel);
+    }
+
     private HousingModel createAndSaveTestHousingModel(
             String rentalObjectId,
             String address,
             String name,
-            String housingType,
-            String city,
-            String district,
+            HousingTypeModel housingType,
+            DistrictModel district,
             BigDecimal areaSqm,
             int pricePerMonth,
             boolean isAvailable,
             LocalDate availableFromDate) {
+
         HousingModel model = new HousingModel();
         model.setRentalObjectId(rentalObjectId);
         model.setAddress(address);
         model.setName(name);
         model.setHousingType(housingType);
-        model.setCity(city);
         model.setDistrict(district);
         model.setAreaSqm(areaSqm);
         model.setPricePerMonth(pricePerMonth);
         model.setAvailable(isAvailable);
         model.setAvailableFromDate(availableFromDate);
-
-        Instant now = Instant.now();
         model.setCreatedAt(now);
         model.setLastModifiedAt(now);
         model.setLastImportedAt(now);
+
         return housingRepository.save(model);
     }
 }

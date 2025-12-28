@@ -71,6 +71,7 @@ public class WebSecurityConfig {
                         .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/api/v1/housings/**",
+                                "/api/v1/cities/**",
                                 "/api-docs/**",
                                 "/swagger-ui/**",
                                 "/error"

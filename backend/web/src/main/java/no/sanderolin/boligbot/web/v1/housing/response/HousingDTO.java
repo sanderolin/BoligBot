@@ -1,4 +1,4 @@
-package no.sanderolin.boligbot.web.v1.housings.response;
+package no.sanderolin.boligbot.web.v1.housing.response;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

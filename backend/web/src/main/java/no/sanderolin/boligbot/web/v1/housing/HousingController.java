@@ -1,4 +1,4 @@
-package no.sanderolin.boligbot.web.v1.housings;
+package no.sanderolin.boligbot.web.v1.housing;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -7,22 +7,20 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import no.sanderolin.boligbot.service.housings.HousingSearchCriteria;
-import no.sanderolin.boligbot.service.housings.HousingService;
+import no.sanderolin.boligbot.service.housing.HousingSearchCriteria;
+import no.sanderolin.boligbot.service.housing.HousingService;
 import no.sanderolin.boligbot.web.v1.common.exception.NotFoundException;
 import no.sanderolin.boligbot.web.v1.common.response.PagedResponse;
-import no.sanderolin.boligbot.web.v1.housings.converters.HousingModelToDTOConverter;
-import no.sanderolin.boligbot.web.v1.housings.converters.HousingSearchRequestToCriteriaConverter;
-import no.sanderolin.boligbot.web.v1.housings.request.HousingSearchRequest;
-import no.sanderolin.boligbot.web.v1.housings.response.HousingDTO;
+import no.sanderolin.boligbot.web.v1.housing.mapper.HousingModelToDTOMapper;
+import no.sanderolin.boligbot.web.v1.housing.mapper.HousingSearchRequestToCriteriaMapper;
+import no.sanderolin.boligbot.web.v1.housing.request.HousingSearchRequest;
+import no.sanderolin.boligbot.web.v1.housing.response.HousingDTO;
 import org.hibernate.ObjectNotFoundException;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/v1/housings")
 @RequiredArgsConstructor
@@ -79,12 +77,12 @@ public class HousingController {
     @GetMapping
     public ResponseEntity<PagedResponse<HousingDTO>> searchHousings(
             @Valid @ParameterObject HousingSearchRequest request) {
-        HousingSearchCriteria criteria = HousingSearchRequestToCriteriaConverter.toCriteria(request);
+        HousingSearchCriteria criteria = HousingSearchRequestToCriteriaMapper.toCriteria(request);
 
         return ResponseEntity.ok(
                 PagedResponse.of(
                         housingService.searchHousings(criteria),
-                        HousingModelToDTOConverter::toDTO
+                        HousingModelToDTOMapper::toDTO
                 )
         );
     }
@@ -92,7 +90,7 @@ public class HousingController {
     @GetMapping("/{rentalObjectId}")
     public ResponseEntity<HousingDTO> getHousingById(@PathVariable(name = "rentalObjectId") String rentalObjectId) {
         try {
-            HousingDTO housingDTO = HousingModelToDTOConverter.toDTO(housingService.getHousingByRentalObjectId(rentalObjectId));
+            HousingDTO housingDTO = HousingModelToDTOMapper.toDTO(housingService.getHousingByRentalObjectId(rentalObjectId));
             return ResponseEntity.ok(housingDTO);
         } catch (ObjectNotFoundException e) {
             throw new NotFoundException(e.getMessage());

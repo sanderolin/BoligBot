@@ -1,7 +1,7 @@
 package no.sanderolin.boligbot.housingimport.service;
 
 import lombok.RequiredArgsConstructor;
-import no.sanderolin.boligbot.dao.model.HousingModel;
+import no.sanderolin.boligbot.housingimport.dto.HousingDTO;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import no.sanderolin.boligbot.housingimport.util.GraphQLHousingMapper;
 import no.sanderolin.boligbot.housingimport.util.SitGraphQLClient;
@@ -24,7 +24,7 @@ public class HousingCatalogFetcher {
             maxAttempts = 3,
             backoff = @Backoff(delay = 1000, multiplier = 2)
     )
-    public List<HousingModel> fetchHousingEntitiesFromGraphQL() {
+    public List<HousingDTO> fetchHousingsFromGraphQL() {
         String getHousingEntitiesQuery = """
             {
               "operationName": "GetHousingItems",
@@ -58,7 +58,7 @@ public class HousingCatalogFetcher {
     }
 
     @Recover
-    public List<HousingModel> recover(Exception e) {
+    public List<HousingDTO> recover(Exception e) {
         throw new HousingImportException("Catalog fetch failed after retries", e);
     }
 }

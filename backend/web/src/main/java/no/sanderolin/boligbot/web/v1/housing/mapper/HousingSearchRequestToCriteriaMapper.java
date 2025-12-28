@@ -1,8 +1,8 @@
-package no.sanderolin.boligbot.web.v1.housings.converters;
+package no.sanderolin.boligbot.web.v1.housing.mapper;
 
-import no.sanderolin.boligbot.service.housings.HousingSearchCriteria;
+import no.sanderolin.boligbot.service.housing.HousingSearchCriteria;
 import no.sanderolin.boligbot.web.v1.common.exception.BadRequestException;
-import no.sanderolin.boligbot.web.v1.housings.request.HousingSearchRequest;
+import no.sanderolin.boligbot.web.v1.housing.request.HousingSearchRequest;
 
 import java.math.BigDecimal;
 
@@ -10,7 +10,7 @@ import java.math.BigDecimal;
  * Converts a HousingSearchRequest to a HousingSearchCriteria.
  * Also performs validation of the request parameters.
  */
-public class HousingSearchRequestToCriteriaConverter {
+public class HousingSearchRequestToCriteriaMapper {
 
     public static HousingSearchCriteria toCriteria(HousingSearchRequest request) throws BadRequestException {
         HousingSearchCriteria criteria = HousingSearchCriteria.builder()

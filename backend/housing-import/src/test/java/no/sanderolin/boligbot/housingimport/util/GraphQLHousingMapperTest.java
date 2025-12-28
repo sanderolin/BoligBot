@@ -1,8 +1,8 @@
 package no.sanderolin.boligbot.housingimport.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import no.sanderolin.boligbot.dao.model.HousingModel;
 import no.sanderolin.boligbot.housingimport.dto.HousingAvailabilityDTO;
+import no.sanderolin.boligbot.housingimport.dto.HousingDTO;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,10 +77,10 @@ class GraphQLHousingMapperTest {
                 }
             }
             """;
-        List<HousingModel> result = graphQLHousingMapper.mapHousingEntities(validHousingEntitiesResponse);
+        List<HousingDTO> result = graphQLHousingMapper.mapHousingEntities(validHousingEntitiesResponse);
         assertThat(result).isNotNull();
         assertThat(result.size()).isEqualTo(2);
-        assertHousingModel(
+        assertHousingDTO(
                 result.getFirst(),
                 "BER10-101",
                 "Hybel 101 H0101",
@@ -91,7 +91,7 @@ class GraphQLHousingMapperTest {
                 BigDecimal.valueOf(9.5),
                 5258
         );
-        assertHousingModel(
+        assertHousingDTO(
                 result.getLast(),
                 "BER10-102",
                 "Hybel 102 H0102",
@@ -179,7 +179,7 @@ class GraphQLHousingMapperTest {
                 }
             }
             """;
-        List<HousingModel> result = graphQLHousingMapper.mapHousingEntities(responseWithMissingIds);
+        List<HousingDTO> result = graphQLHousingMapper.mapHousingEntities(responseWithMissingIds);
         assertThat(result).hasSize(0);
     }
 
@@ -217,7 +217,7 @@ class GraphQLHousingMapperTest {
                 }
             }
             """;
-        List<HousingModel> result = graphQLHousingMapper.mapHousingEntities(responseWithNegativeValues);
+        List<HousingDTO> result = graphQLHousingMapper.mapHousingEntities(responseWithNegativeValues);
         assertThat(result).hasSize(0);
     }
 
@@ -334,16 +334,16 @@ class GraphQLHousingMapperTest {
         );
     }
 
-    private void assertHousingModel(HousingModel model, String expectedRentalObjectId, String expectedName,
-                                    String expectedAddress, String expectedHousingType, String expectedCity,
-                                    String expectedDistrict, BigDecimal expectedAreaSqm, int expectedPricePerMonth) {
-        assertThat(model.getRentalObjectId()).isEqualTo(expectedRentalObjectId);
-        assertThat(model.getName()).isEqualTo(expectedName);
-        assertThat(model.getAddress()).isEqualTo(expectedAddress);
-        assertThat(model.getHousingType()).isEqualTo(expectedHousingType);
-        assertThat(model.getCity()).isEqualTo(expectedCity);
-        assertThat(model.getDistrict()).isEqualTo(expectedDistrict);
-        assertThat(model.getAreaSqm()).isEqualTo(expectedAreaSqm);
-        assertThat(model.getPricePerMonth()).isEqualTo(expectedPricePerMonth);
+    private void assertHousingDTO(HousingDTO dto, String expectedRentalObjectId, String expectedName,
+                                  String expectedAddress, String expectedHousingType, String expectedCity,
+                                  String expectedDistrict, BigDecimal expectedAreaSqm, int expectedPricePerMonth) {
+        assertThat(dto.rentalObjectId()).isEqualTo(expectedRentalObjectId);
+        assertThat(dto.name()).isEqualTo(expectedName);
+        assertThat(dto.address()).isEqualTo(expectedAddress);
+        assertThat(dto.housingTypeName()).isEqualTo(expectedHousingType);
+        assertThat(dto.cityName()).isEqualTo(expectedCity);
+        assertThat(dto.districtName()).isEqualTo(expectedDistrict);
+        assertThat(dto.areaSqm()).isEqualTo(expectedAreaSqm);
+        assertThat(dto.pricePerMonth()).isEqualTo(expectedPricePerMonth);
     }
 }

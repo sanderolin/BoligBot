@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import no.sanderolin.boligbot.dao.model.HousingModel;
 import no.sanderolin.boligbot.housingimport.dto.HousingAvailabilityDTO;
+import no.sanderolin.boligbot.housingimport.dto.HousingDTO;
 import no.sanderolin.boligbot.housingimport.exception.HousingImportException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -29,11 +29,11 @@ public class GraphQLHousingMapper {
     private static final ZoneId ZONE_OSLO = ZoneId.of("Europe/Oslo");
 
     /**
-     * Maps the JSON response from the GraphQL query to a list of HousingModel objects.
+     * Maps the JSON response from the GraphQL query to a list of HousingDTO objects.
      * @param jsonResponse The JSON response string from the GraphQL query.
-     * @return A list of HousingModel objects populated with data from the JSON response.
+     * @return A list of HousingDTO objects populated with data from the JSON response.
      */
-    public List<HousingModel> mapHousingEntities(String jsonResponse) {
+    public List<HousingDTO> mapHousingEntities(String jsonResponse) {
         validateInput(jsonResponse);
 
         try {
@@ -41,18 +41,18 @@ public class GraphQLHousingMapper {
             validateHousingEntitiesJsonStructure(root);
 
             JsonNode items = root.path("data").path("sanity_allEnhet");
-            List<HousingModel> result = new ArrayList<>();
+            List<HousingDTO> result = new ArrayList<>();
             int processedCount = 0;
             int skippedCount = 0;
 
             for (JsonNode item : items) {
                 try {
-                    HousingModel model = mapSingleItem(item);
-                    if (model == null) {
+                    HousingDTO housing = mapSingleItem(item);
+                    if (housing == null) {
                         skippedCount++;
                         continue;
                     }
-                    result.add(model);
+                    result.add(housing);
                     processedCount++;
                 } catch (Exception e) {
                     log.warn("Failed to map housing item: {}", item.toString(), e);
@@ -160,7 +160,7 @@ public class GraphQLHousingMapper {
     }
 
 
-    private HousingModel mapSingleItem(JsonNode item) {
+    private HousingDTO mapSingleItem(JsonNode item) {
         String rentalObjectId = getStringValue(item, "rentalObjectId");
         String name = getStringValue(item, "name");
         String address = getNestedStringValue(item, "building", "address");
@@ -174,16 +174,16 @@ public class GraphQLHousingMapper {
             return null;
         }
 
-        HousingModel model = new HousingModel();
-        model.setRentalObjectId(rentalObjectId);
-        model.setName(name);
-        model.setAddress(address);
-        model.setHousingType(housingType);
-        model.setCity(city);
-        model.setDistrict(district);
-        model.setAreaSqm(areaSqm);
-        model.setPricePerMonth(pricePerMonth);
-        return model;
+        return new HousingDTO(
+                rentalObjectId,
+                name,
+                address,
+                housingType,
+                city,
+                district,
+                areaSqm,
+                pricePerMonth
+        );
     }
 
     private boolean isValidHousingData(String rentalObjectId, String name, String address,
@@ -235,7 +235,7 @@ public class GraphQLHousingMapper {
 
     private String getStringValue(JsonNode parent, String fieldName) {
         JsonNode field = parent.path(fieldName);
-        return field.isMissingNode() || field.isNull() ? null : field.asText();
+        return field.isMissingNode() || field.isNull() ? null : field.asText().trim();
     }
 
     private String getNestedStringValue(JsonNode parent, String... fieldPath) {
@@ -246,7 +246,7 @@ public class GraphQLHousingMapper {
                 return null;
             }
         }
-        return current.asText();
+        return current.asText().trim();
     }
 
     private BigDecimal getBigDecimalValue(JsonNode parent, String fieldName) {

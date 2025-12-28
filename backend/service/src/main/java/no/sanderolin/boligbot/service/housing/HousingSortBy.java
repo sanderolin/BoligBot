@@ -1,4 +1,4 @@
-package no.sanderolin.boligbot.service.housings;
+package no.sanderolin.boligbot.service.housing;
 
 public enum HousingSortBy {
     AVAILABLE_FROM_DATE("availableFromDate"),
