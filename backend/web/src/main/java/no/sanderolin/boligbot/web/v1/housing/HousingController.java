@@ -87,6 +87,20 @@ public class HousingController {
         );
     }
 
+    @Operation(
+            summary = "Get housing by ID",
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "Successful operation",
+                            useReturnTypeSchema = true
+                    ),
+                    @ApiResponse(
+                            responseCode = "404",
+                            description = "Housing with the given rental object ID was not found."
+                    )
+            }
+    )
     @GetMapping("/{rentalObjectId}")
     public ResponseEntity<HousingDTO> getHousingById(@PathVariable(name = "rentalObjectId") String rentalObjectId) {
         try {

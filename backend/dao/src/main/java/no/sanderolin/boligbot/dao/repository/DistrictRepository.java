@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface DistrictRepository extends JpaRepository<DistrictModel, Long> {
     List<DistrictModel> findAllByCityIdIn(Collection<Long> cityIds);
+
+    List<DistrictModel> findAllByCityId(Long cityId);
 }
