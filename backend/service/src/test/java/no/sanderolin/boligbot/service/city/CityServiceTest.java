@@ -8,7 +8,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,7 +21,7 @@ class CityServiceTest {
 
     @Test
     void getCities_shouldReturnAllCities() {
-        List<CityModel> mockResult = Arrays.asList(
+        List<CityModel> mockResult = List.of(
                 new CityModel(),
                 new CityModel()
         );

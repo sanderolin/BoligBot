@@ -1,4 +1,4 @@
-package no.sanderolin.boligbot.apitests.housings;
+package no.sanderolin.boligbot.apitests.housing;
 
 import no.sanderolin.boligbot.apitests.AbstractAPITest;
 import no.sanderolin.boligbot.app.BackendApplication;
@@ -48,12 +48,12 @@ public class HousingAPITest extends AbstractAPITest {
     @BeforeEach
     void setUp() {
         CityModel trondheim = createCityModel("Trondheim");
-        CityModel gjøvik = createCityModel("Gjøvik");
-        CityModel ålesund = createCityModel("Ålesund");
+        CityModel gjoevik = createCityModel("Gjøvik");
+        CityModel aalesund = createCityModel("Ålesund");
 
         DistrictModel moholt = createDistrictModel("Moholt", trondheim);
-        DistrictModel sentrum = createDistrictModel("Sentrum", gjøvik);
-        DistrictModel sørnesvågen = createDistrictModel("Sørnesvågen", ålesund);
+        DistrictModel sentrum = createDistrictModel("Sentrum", gjoevik);
+        DistrictModel sørnesvågen = createDistrictModel("Sørnesvågen", aalesund);
         DistrictModel singsaker = createDistrictModel("Singsaker", trondheim);
 
         HousingTypeModel oneRoomApartment = createHousingTypeModel("1-room apartment");
@@ -63,7 +63,7 @@ public class HousingAPITest extends AbstractAPITest {
         seededHousingModels = List.of(
                 createAndSaveTestHousingModel(
                         "1", "Address 1", "Name 1", oneRoomApartment,
-                        moholt, BigDecimal.valueOf(19.9), 8200,
+                        moholt, BigDecimal.valueOf(19.90), 8200,
                         true, LocalDate.of(2025, 10, 1)
                 ),
                 createAndSaveTestHousingModel(
@@ -105,14 +105,14 @@ public class HousingAPITest extends AbstractAPITest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.rentalObjectId").value(expectedHousing.getRentalObjectId()))
-                .andExpect(jsonPath("$.address").value("Address 1"))
-                .andExpect(jsonPath("$.name").value("Name 1"))
+                .andExpect(jsonPath("$.address").value(expectedHousing.getAddress()))
+                .andExpect(jsonPath("$.name").value(expectedHousing.getName()))
                 .andExpect(jsonPath("$.housingType").value("1-room apartment"))
                 .andExpect(jsonPath("$.city").value("Trondheim"))
                 .andExpect(jsonPath("$.district").value("Moholt"))
-                .andExpect(jsonPath("$.areaSqm").value(BigDecimal.valueOf(19.9)))
-                .andExpect(jsonPath("$.pricePerMonth").value(8200))
-                .andExpect(jsonPath("$.isAvailable").value(true))
+                .andExpect(jsonPath("$.areaSqm").value(expectedHousing.getAreaSqm()))
+                .andExpect(jsonPath("$.pricePerMonth").value(expectedHousing.getPricePerMonth()))
+                .andExpect(jsonPath("$.isAvailable").value(expectedHousing.isAvailable()))
                 .andExpect(jsonPath("$.availableFromDate").value("2025-10-01"));
     }
 

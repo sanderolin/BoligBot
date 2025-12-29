@@ -62,7 +62,7 @@ public class CityController {
             }
     )
     @GetMapping("/{cityId}/districts")
-    public ResponseEntity<List<DistrictDTO>> getDistrictsByCity(@PathVariable long cityId) {
+    public ResponseEntity<List<DistrictDTO>> getDistrictsByCityId(@PathVariable long cityId) {
         try {
             return ResponseEntity.ok(
                     districtService.getDistrictsByCityId(cityId)

@@ -10,7 +10,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,20 +26,20 @@ class DistrictServiceTest {
     @InjectMocks private DistrictService districtService;
 
     @Test
-    void getDistricts_shouldReturnAllDistricts() {
-        List<DistrictModel> districts = Arrays.asList(
+    void getAllDistricts_shouldReturnAllAllDistricts() {
+        List<DistrictModel> districts = List.of(
                 new DistrictModel(),
                 new DistrictModel()
         );
         when(districtRepository.findAll()).thenReturn(districts);
-        List<DistrictModel> result = districtService.getDistricts();
+        List<DistrictModel> result = districtService.getAllDistricts();
         assertThat(result)
                 .usingRecursiveAssertion()
                 .isEqualTo(districts);
     }
 
     @Test
-    void getDistrictsByCityId_WithExistingCityId_shouldReturnDistricts() {
+    void getDistrictsByCityId_WithExistingCityId_shouldReturnAllDistricts() {
         List<DistrictModel> districts = List.of(
                 new DistrictModel(),
                 new DistrictModel()
@@ -56,7 +55,7 @@ class DistrictServiceTest {
     }
 
     @Test
-    void getDistrictsByCityId_WithNonExistingCityId_shouldReturnEmptyList() {
+    void getAllDistrictsByCityId_WithNonExistingCityId_shouldReturnEmptyList() {
         long cityId = 1L;
         when(cityRepository.existsById(eq(cityId))).thenReturn(false);
         assertThrows(ObjectNotFoundException.class, () ->

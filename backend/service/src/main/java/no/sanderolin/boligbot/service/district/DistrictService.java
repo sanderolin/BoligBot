@@ -17,7 +17,7 @@ public class DistrictService {
     private final DistrictRepository districtRepository;
     private final CityRepository cityRepository;
 
-    public List<DistrictModel> getDistricts() {
+    public List<DistrictModel> getAllDistricts() {
         return districtRepository.findAll();
     }
 

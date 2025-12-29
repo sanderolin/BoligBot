@@ -73,6 +73,7 @@ public class WebSecurityConfig {
                                 "/api/v1/housings/**",
                                 "/api/v1/cities/**",
                                 "/api/v1/districts/**",
+                                "/api/v1/housing-types/**",
                                 "/api-docs/**",
                                 "/swagger-ui/**",
                                 "/error"

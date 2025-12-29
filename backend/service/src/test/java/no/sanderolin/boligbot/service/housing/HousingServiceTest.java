@@ -17,7 +17,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,7 +33,7 @@ class HousingServiceTest {
 
     @BeforeEach
     void setUp() {
-        mockHousings = Arrays.asList(
+        mockHousings = List.of(
                 new HousingModel(),
                 new HousingModel(),
                 new HousingModel()
